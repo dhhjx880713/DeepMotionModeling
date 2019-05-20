@@ -1,0 +1,3 @@
+[submodule "mosi_utils_anim"]
+	path = mosi_utils_anim
+	url = ssh://git@iceland.sb.dfki.de:7999/motsy/mosi_utils_anim.git
