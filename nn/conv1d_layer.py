@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 
 
-class Conv1D():
+class Conv1D(object):
 
     def __init__(self, filter_shape, stride, name='conv1d', rng=np.random):
         '''

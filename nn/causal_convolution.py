@@ -7,7 +7,7 @@ class CausalConv1D(tf.layers.Conv1D):
                  kernel_size,
                  strides=1,
                  dilation_rate=1,
-                 padding='valid',
+                 ##padding='valid', lock the padding method to be valid
                  data_format='channels_last',
                  activation=None,
                  use_bias=True,
@@ -25,7 +25,7 @@ class CausalConv1D(tf.layers.Conv1D):
             filters=filters,
             kernel_size=kernel_size,
             strides=strides,
-            padding=padding,
+            padding="valid",
             data_format=data_format,
             dilation_rate=dilation_rate,
             activation=activation,
@@ -42,6 +42,8 @@ class CausalConv1D(tf.layers.Conv1D):
         )
 
     def call(self, inputs):
-        padding = (self.kernel_size[0] - 1) * self.dilation_rate[0]
-        inputs = tf.pad(inputs, tf.constant([(0, 0,), (1, 0), (0, 0)]) * padding)
-        return super(CausalConv1D, self).call(inputs)
+        ## left zero padding
+        padding = tf.keras.layers.ZeroPadding1D(((self.kernel_size[0] - 1 ) *self.dilation_rate[0], 0))(inputs)
+        conv = super(CausalConv1D, self).call(padding) 
+        return conv
+
