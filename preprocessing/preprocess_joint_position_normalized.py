@@ -103,24 +103,24 @@ def test_ik():
 
 
 def get_normalized_joint_position():
-    input_folder = r'E:\workspace\mocap_data\mk_cmu_retargeting\pfnn_data'
+    input_folder = r'E:\workspace\mocap_data\mk_cmu_retargeting\ulm_locomotion\Take_walk'
     preprocessor = Preprocessor()
     preprocessor.load_bvh_files_from_directory(input_folder)
     preprocessor.rotate_euler_frames(np.array([0, 1]), ['RightUpLeg', 'Hips', 'LeftUpLeg'])
     preprocessor.translate_root_to_target(np.array([0, 0]))
     preprocessor.shift_on_floor(foot_joints = animated_joint_list)    
-    preprocessor.save_files(r'E:\workspace\projects\cGAN\processed_data\pfnn_data')
+    preprocessor.save_files(r'E:\workspace\projects\cGAN\processed_data\ACCAD')
     ## remove zero length joints
 
-    global_positions = preprocessor.get_global_positions(animated_joint_list)
-    ## create clips
+    # global_positions = preprocessor.get_global_positions(animated_joint_list)
+    # ## create clips
 
-    ## concatenate motion clips
-    # global_positions_sequence = [value for key, value in global_positions]
-    motion_clips = []
-    for key, value in global_positions.items():
-        motion_clips += sliding_window(value, window_size=60)
-    np.savez_compressed(r'E:\workspace\projects\cGAN\processed_data\joint_position\pfnn_data', clips=np.asarray(motion_clips))
+    # ## concatenate motion clips
+    # # global_positions_sequence = [value for key, value in global_positions]
+    # motion_clips = []
+    # for key, value in global_positions.items():
+    #     motion_clips += sliding_window(value, window_size=60)
+    # np.savez_compressed(r'E:\workspace\projects\cGAN\processed_data\joint_position\ACCAD', clips=np.asarray(motion_clips))
 
 
 def test():

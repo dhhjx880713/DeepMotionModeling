@@ -9,7 +9,7 @@ rng = np.random.RandomState(23456)
 regularizer = None
 from nn.spectrum_pooling import spectrum_pooling_1d
 from nn.unpooling import average_unpooling_1d, spectrum_unpooling_1d
-from utils import gram_matrix
+from models.utils import gram_matrix
 
 
 class CNNAutoEncoder(object):

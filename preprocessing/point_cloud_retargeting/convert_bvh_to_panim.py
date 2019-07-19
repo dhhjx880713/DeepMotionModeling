@@ -65,42 +65,6 @@ def convert_bvh_to_panim_data(input_file, save_file, animated_joints=None,
     write_to_json_file(save_file, save_data)
 
 
-
-def test():
-    # skeleton_bvhfile = r'C:\repo\data\1 - MoCap\2.1 - GameSkeleton retargeting\stylistic_walking\sexy\sexy_normalwalking_16.bvh'
-    # bvhreader = BVHReader(skeleton_bvhfile)
-    # skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
-    # input_folder = r'C:\repo\data\1 - MoCap\2.1 - GameSkeleton retargeting\stylistic_walking\sexy'
-    # output_folder = r'E:\workspace\projects\variational_style_simulation\point_cloud_data'
-    # convert_motions_to_point_cloud(skeleton, input_folder, output_folder)
-
-    # skeleton_bvhfile = r'E:\workspace\unity_workspace\MG\motion_in_json\cmu_skeleton\angry_fast walking_147.bvh'
-    # bvhreader = BVHReader(skeleton_bvhfile)
-    # skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
-    # print(skeleton.animated_joints)
-    # # input_folder = r'E:\workspace\unity_workspace\MG\motion_in_json\cmu_skeleton'
-    # # output_folder = r'E:\workspace\unity_workspace\MG\motion_in_json\cmu_skeleton'
-    # # convert_motions_to_point_cloud(skeleton, input_folder, output_folder, animated_joints=None)
-    # MH_CMU_ANIMATED_JOINTS = ['Hips', 'LHipJoint', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase', 'LowerBack', 'Spine',
-    #                           'Spine1', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LThumb', 'LeftFingerBase',
-    #                           'LeftHandFinger1', 'Neck', 'Neck1', 'Head', 'RightShoulder', 'RightArm', 'RightForeArm',
-    #                           'RightHand', 'RThumb', 'RightFingerBase', 'RightHandFinger1', 'RHipJoint', 'RightUpLeg',
-    #                           'RightLeg', 'RightFoot', 'RightToeBase']
-    # print(len(MH_CMU_ANIMATED_JOINTS))
-
-    # skeleton_bvhfile = r'E:\gits\motionsynth_code\data\processed\edin_locomotion\locomotion_jog_000_000.bvh'
-    # convert_motions_to_point_cloud(skeleton, input_folder, output_folder, animated_joints=None)
-    panim_data = load_json_file(r'E:\workspace\projects\retargeting_experiments\panim_from_mk_retargeting\LocomotionFlat04_000.panim')
-    print(panim_data.keys())
-
-
-MH_CMU_ANIMATED_JOINTS = ['Hips', 'LHipJoint', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase', 'LowerBack', 'Spine',
-                          'Spine1', 'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LThumb', 'LeftFingerBase',
-                          'LeftHandFinger1', 'Neck', 'Neck1', 'Head', 'RightShoulder', 'RightArm', 'RightForeArm',
-                          'RightHand', 'RThumb', 'RightFingerBase', 'RightHandFinger1', 'RHipJoint', 'RightUpLeg',
-                          'RightLeg', 'RightFoot', 'RightToeBase']
-
-
 def convert_motions_to_point_cloud(skeleton, data_folder, output_folder, animated_joints=GAME_ENGINE_ANIMATED_JOINTS_without_game_engine):
     '''
     convert bvhfile to cartesian position in the format n_frames * n_joints * 3
@@ -130,12 +94,3 @@ def convert_motion_to_npy(bvhfile, output_folder):
     skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
     cartesian_frames = convert_euler_frames_to_cartesian_frames(skeleton, bvhreader.frames)
     np.save(os.path.join(output_folder, filename.replace('.bvh', '.npy')), cartesian_frames)
-
-
-def load_panim_data():
-    panim_data = load_json_file(r'E:\workspace\projects\variational_style_simulation\retargeted_cmu_files_test\angry_fast walking_147_mesh_retargeting.panim')
-    frame_data = panim_data["frames"]
-    # print(frame_data[0].keys())
-    world_pos = frame_data[0]['WorldPos']
-    print(len(world_pos))
-    print(world_pos)

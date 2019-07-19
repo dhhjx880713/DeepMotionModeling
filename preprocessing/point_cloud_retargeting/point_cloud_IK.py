@@ -1,11 +1,15 @@
 import numpy as np
-from morphablegraphs.animation_data.quaternion import Quaternion
 import copy
-from morphablegraphs.animation_data.utils import pose_orientation_from_point_cloud, rotate_euler_frame, \
-    convert_euler_frames_to_cartesian_frames, compute_average_quaternions
-from morphablegraphs.animation_data import BVHReader, SkeletonBuilder, BVHWriter
 import os
-from morphablegraphs.construction.retargeting.convert_bvh_to_json import convert_bvh_to_unity_json
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/../..')
+from mosi_utils_anim.animation_data.quaternion import Quaternion
+from mosi_utils_anim.animation_data.utils import pose_orientation_from_point_cloud, rotate_euler_frame, \
+    convert_euler_frames_to_cartesian_frames, compute_average_quaternions
+from mosi_utils_anim.animation_data import BVHReader, SkeletonBuilder, BVHWriter
+
+# from morphablegraphs.construction.retargeting.convert_bvh_to_json import convert_bvh_to_unity_json
 '''
 Automatically generate direction constriants from joint mapping. Start from root joint, recursively traverse its 
 children, if the child is inside of dictionary keys, a direction contraints is generated. In the corresponding target 
@@ -13,67 +17,67 @@ skeleton, a corresponding target direction can be derivated from their correspon
 
 '''
 
-EDIN_MAKEHUMAN_JOINT_MAPPING = {
-    'Hips': 'Hips',
-    # 'LHipJoint': 'LHipJoint',
-    'LeftUpLeg': 'LeftUpLeg',
-    'LeftLeg': 'LeftLeg',
-    'LeftFoot': 'LeftFoot',
-    'LeftToeBase': 'LeftToeBase',
-    # 'RHipJoint': 'RHipJoint',
-    'RightUpLeg': 'RightUpLeg',
-    'RightLeg': 'RightLeg',
-    'RightFoot': 'RightFoot',
-    'RightToeBase': 'RightToeBase',
+# EDIN_MAKEHUMAN_JOINT_MAPPING = {
+#     'Hips': 'Hips',
+#     # 'LHipJoint': 'LHipJoint',
+#     'LeftUpLeg': 'LeftUpLeg',
+#     'LeftLeg': 'LeftLeg',
+#     'LeftFoot': 'LeftFoot',
+#     'LeftToeBase': 'LeftToeBase',
+#     # 'RHipJoint': 'RHipJoint',
+#     'RightUpLeg': 'RightUpLeg',
+#     'RightLeg': 'RightLeg',
+#     'RightFoot': 'RightFoot',
+#     'RightToeBase': 'RightToeBase',
 
-    # 'Neck': 'Neck',
-    # 'Neck1': 'Neck',
-    'Head': 'Head',
+#     # 'Neck': 'Neck',
+#     # 'Neck1': 'Neck',
+#     'Head': 'Head',
 
-    # 'LowerBack': 'LowerBack',
-    # 'Spine': 'Spine',
-    # 'Spine': 'LowerBack',  ## take care if src joint has zero bone length
-    'Spine1': 'Spine1',
-    # 'LeftShoulder': 'LeftShoulder',
-    # 'LeftArm': 'LeftShoulder',
-    # 'LeftArm': 'LeftArm',
-    'LeftForeArm': 'LeftForeArm',
-    'LeftHand': 'LeftHand',
+#     # 'LowerBack': 'LowerBack',
+#     # 'Spine': 'Spine',
+#     # 'Spine': 'LowerBack',  ## take care if src joint has zero bone length
+#     'Spine1': 'Spine1',
+#     # 'LeftShoulder': 'LeftShoulder',
+#     # 'LeftArm': 'LeftShoulder',
+#     # 'LeftArm': 'LeftArm',
+#     'LeftForeArm': 'LeftForeArm',
+#     'LeftHand': 'LeftHand',
 
-    # 'RightShoulder': 'RightShoulder',
-    # 'RightArm': 'RightShoulder',
-    # 'RightArm': 'RightArm',
-    'RightForeArm': 'RightForeArm',
-    'RightHand': 'RightHand',
+#     # 'RightShoulder': 'RightShoulder',
+#     # 'RightArm': 'RightShoulder',
+#     # 'RightArm': 'RightArm',
+#     'RightForeArm': 'RightForeArm',
+#     'RightHand': 'RightHand',
 
-    # 'LeftArm': 'clavicle_l',
-    # 'LeftForeArm': 'upperarm_l',
-    # 'LeftHand': 'lowerarm_l',
-    # 'LeftHandIndex1': 'hand_l',
-    # 'RightArm': 'clavicle_r',
-    # 'RightForeArm': 'upperarm_r',
-    # 'RightHand': 'lowerarm_r',
-    # 'RightHandIndex1': 'hand_r'
-}
-
-
-def traverse_joints(joint):
-    print(joint.node_name)
-    if joint.node_name in EDIN_MAKEHUMAN_JOINT_MAPPING.keys():
-        ''' 
-        its parent must also be in the dictionary (why)
-        '''
-        parent_joint = joint.parent
-    for child in joint.children:
-        traverse_joints(child)
+#     # 'LeftArm': 'clavicle_l',
+#     # 'LeftForeArm': 'upperarm_l',
+#     # 'LeftHand': 'lowerarm_l',
+#     # 'LeftHandIndex1': 'hand_l',
+#     # 'RightArm': 'clavicle_r',
+#     # 'RightForeArm': 'upperarm_r',
+#     # 'RightHand': 'lowerarm_r',
+#     # 'RightHandIndex1': 'hand_r'
+# }
 
 
-def create_partial_direction_constraints_from_point_cloud(point_cloud, skeleton,
-                                                          torso_plane=['LeftUpLeg', 'LowerBack', 'RightUpLeg']):
-    body_plane_indices = [skeleton.animated_joints.index(joint) for joint in torso_plane]
-    global_direction = pose_orientation_from_point_cloud(point_cloud[0], body_plane_indices)
-    print(global_direction)
-    traverse_joints(skeleton.nodes[skeleton.root])
+# def traverse_joints(joint):
+#     print(joint.node_name)
+#     if joint.node_name in EDIN_MAKEHUMAN_JOINT_MAPPING.keys():
+#         ''' 
+#         its parent must also be in the dictionary (why)
+#         '''
+#         parent_joint = joint.parent
+#     for child in joint.children:
+#         traverse_joints(child)
+
+
+# def create_partial_direction_constraints_from_point_cloud(point_cloud, skeleton,
+#                                                           torso_plane=['LeftUpLeg', 'LowerBack', 'RightUpLeg']):
+#     body_plane_indices = [skeleton.animated_joints.index(joint) for joint in torso_plane]
+#     global_direction = pose_orientation_from_point_cloud(point_cloud[0], body_plane_indices)
+#     print(global_direction)
+#     traverse_joints(skeleton.nodes[skeleton.root])
 
 
 
@@ -110,17 +114,17 @@ class PatialPointCouldIK(object):
 
 class PointCouldIK(object):
 
-    def __init__(self, skeleton, ref_frame, torso_plain=['LeftUpLeg', 'LowerBack', 'RightUpLeg'], debug=False):
+    def __init__(self, skeleton, ref_frame, torso_plane=['LeftUpLeg', 'LowerBack', 'RightUpLeg'], debug=False):
         '''
 
         :param skeleton:
         :param ref_frame: euler frame
-        :param torso_plain: use to find forward direction
+        :param torso_plane: use to find forward direction
         :param debug:
         '''
         self.skeleton = skeleton
         self.ref_frame = ref_frame
-        self.torso_plane = torso_plain
+        self.torso_plane = torso_plane
         self.debug = debug
 
     def align_single_bone(self, joint_name, child_name, frame_data, points):
@@ -181,6 +185,41 @@ class PointCouldIK(object):
             return q2 * q1
         else:
             raise NotImplementedError
+    
+    def align_two_bones(self, joint_name, frame_data, points):
+        """handle two children case
+        
+        Arguments:
+            joint_name {str} -- parent joint name 
+            frame_data {numpy.array} -- reference frame
+            points {numpy.array} -- point cloud data
+        """
+        # find worldToLocal transformation
+        global_trans = self.skeleton.nodes[joint_name].get_global_matrix_from_euler_frame(frame_data)
+        global_trans_inv = np.linalg.inv(global_trans)
+        global_trans_inv[:3, 3] = np.zeros(3)  ### remove translation information    
+        
+        first_bone = self.skeleton.nodes[joint_name].children[0]
+        second_bone = self.skeleton.nodes[joint_name].children[1]
+
+        joint_index = self.skeleton.animated_joints.index(joint_name)
+        first_bone_index = self.skeleton.animated_joints.index(first_bone.node_name)
+        second_bone_index = self.skeleton.animated_joints.index(second_bone.node_name)
+
+        joint_pos = points[joint_index]
+        first_bone_pos = points[first_bone_index]
+        second_bone_pos = points[second_bone_index]
+
+        firstTargetBone = first_bone_pos - joint_pos
+        secondTargetBone = second_bone_pos - joint_pos
+
+        firstTargetBoneLocal = PointCouldIK.get_local_position(global_trans_inv, firstTargetBone)
+        secondTargetBoneLocal = PointCouldIK.get_local_position(global_trans_inv, secondTargetBone)
+
+        averageTargetBoneLocal = (firstTargetBoneLocal + secondTargetBoneLocal) / 2
+        averageBoneOffset = (np.asarray(first_bone.offset) + np.asarray(second_bone.offset)) / 2
+
+        return Quaternion.between(averageBoneOffset, averageTargetBoneLocal)
 
     def align_zero_length_bones(self, joint_name, frame_data, points):
         '''
@@ -199,7 +238,6 @@ class PointCouldIK(object):
             assert len(child.children) == 1
             grandchild = child.children[0]
             global_pos = grandchild.get_global_position_from_euler(frame_data)
-            # local_pos = np.dot(global_trans_inv, np.append(global_pos, 1))[:-1]
             local_pos = PointCouldIK.get_local_position(global_trans_inv, global_pos)
             target_pos = points[grandchild.index]
             target_local_pos = PointCouldIK.get_local_position(global_trans_inv, target_pos)
@@ -293,13 +331,66 @@ class PointCouldIK(object):
 
                 else:
                     raise NotImplementedError
+            elif len(children) == 2:
+                zero_bone_number = 0
+                for child in children:
+                    if np.linalg.norm(child.offset) < 1e-6:
+                        zero_bone_number += 1
+                if self.debug:
+                    print('number of zero-length bone: ', zero_bone_number)
+                if zero_bone_number == len(children):
+                    q = self.align_zero_length_bones(joint_name, frame_data, points)
+                    local_rotation = self.skeleton.nodes[joint_name].get_local_matrix_from_euler(frame_data)
+                    local_rotation_q = Quaternion.fromMat(local_rotation[:3, :3])
+                    new_local_rotation = local_rotation_q * q
+                    frame_data[
+                        self.skeleton.nodes[joint_name].rotation_channel_indices] = new_local_rotation.toEulerAnglesDegree() 
+                elif zero_bone_number == 1:
+                    for child in children:
+                        if np.linalg.norm(child.offset) > 1e-6:  ## find and rotate non zero length bone
+                            q = self.align_single_bone(joint_name, child.node_name, frame_data, points)
+                            local_rotation = self.skeleton.nodes[joint_name].get_local_matrix_from_euler(frame_data)
+                            local_rotation_q = Quaternion.fromMat(local_rotation[:3, :3])
+                            new_local_rotation = local_rotation_q * q
+                            frame_data[self.skeleton.nodes[
+                                joint_name].rotation_channel_indices] = new_local_rotation.toEulerAnglesDegree()
+                            if self.debug:
+                                child_joint_name = child.node_name
+                                child_joint_position = self.skeleton.nodes[child_joint_name].get_global_position_from_euler(
+                                    frame_data)
+                                parent_joint_position = self.skeleton.nodes[joint_name].get_global_position_from_euler(
+                                    frame_data)
+                                bone_dir = child_joint_position - parent_joint_position
+                                bone_dir = bone_dir / np.linalg.norm(bone_dir)
+                                target_child_poition = points[self.skeleton.nodes[child_joint_name].index]
+                                target_parent_position = points[self.skeleton.nodes[joint_name].index]
+                                target_bone_dir = target_child_poition - target_parent_position
+                                target_bone_dir = target_bone_dir / np.linalg.norm(target_bone_dir)
+                                if np.allclose(bone_dir, target_bone_dir):
+                                    print(child_joint_name + " reaches the target.")
+                                else:
+                                    print(child_joint_name + " misses the target.")
+                                    print("calculated bone direction: ", bone_dir)
+                                    print("target bone direction: ", target_bone_dir)
+                elif zero_bone_number == 0:
+                    q = self.align_two_bones(joint_name, frame_data, points)
+
+                    local_rotation = self.skeleton.nodes[joint_name].get_local_matrix_from_euler(frame_data)
+
+                    local_rotation_q = Quaternion.fromMat(local_rotation[:3, :3])
+                    new_local_rotation = local_rotation_q * q
+                    frame_data[self.skeleton.nodes[
+                        joint_name].rotation_channel_indices] = new_local_rotation.toEulerAnglesDegree()
+
+                else:
+                    raise NotImplementedError
+
             else:
-                # raise NotImplementedError
-                pass
+                raise NotImplementedError
+                # pass
             for child in children:
                 self.align_joint_orientation(child.node_name, frame_data, points)
         else:
-            # print(joint_name + " has no children.")
             pass
 
     def run(self, point_cloud):
@@ -360,49 +451,51 @@ def IK_example():
 
 
 
-def IK_for_Edin_data():
-    from morphablegraphs.utilities import write_to_json_file
+def point_cloudIK_test():
+    # from morphablegraphs.utilities import write_to_json_file
     '''
     test the scalablity of IK
     Edit data has different bone size from MK_CMU skeleton
     :return:
     '''
-    data_file = r'E:\gits\PFNN\data\animations\LocomotionFlat09_000.bvh'
+    # data_file = r'E:\gits\PFNN\data\animations\LocomotionFlat09_000.bvh'
+    data_file = r'E:\workspace\projects\retargeting_experiments\retargeted_results\LocomotionFlat01_000_short.bvh'
     dataBVHReader = BVHReader(data_file)
     dataSkeleton = SkeletonBuilder().load_from_bvh(dataBVHReader)
 
-    skeleton_file = r'E:\workspace\projects\variational_style_simulation\retargeted_bvh_files_mk_cmu_skeleton\pfnn_data\LocomotionFlat04_000.bvh'
+    # skeleton_file = r'E:\workspace\projects\variational_style_simulation\retargeted_bvh_files_mk_cmu_skeleton\pfnn_data\LocomotionFlat04_000.bvh'
+    skeleton_file = r'E:\workspace\mocap_data\skeleton_template\mk_cmu_T_pose.bvh'
     bvhreader = BVHReader(skeleton_file)
     skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
 
-    print("data animated joints : ")
-    print(dataSkeleton.animated_joints)
+    # print("data animated joints : ")
+    # print(dataSkeleton.animated_joints)
 
-    print("animated joints: ")
-    print(skeleton.animated_joints)
-    animated_joints = []
-    for jointname in skeleton.animated_joints:
-        if jointname == 'LeftHandFinger1':
-            animated_joints.append('LeftHandIndex1')
-        elif jointname == 'RightHandFinger1':
-            animated_joints.append('RightHandIndex1')
-        else:
-            animated_joints.append(jointname)
-    point_cloud = convert_euler_frames_to_cartesian_frames(dataSkeleton, dataBVHReader.frames, animated_joints=animated_joints)
+    # print("animated joints: ")
+    # print(skeleton.animated_joints)
+    # animated_joints = []
+    # for jointname in skeleton.animated_joints:
+    #     if jointname == 'LeftHandFinger1':
+    #         animated_joints.append('LeftHandIndex1')
+    #     elif jointname == 'RightHandFinger1':
+    #         animated_joints.append('RightHandIndex1')
+    #     else:
+    #         animated_joints.append(jointname)
+    point_cloud = convert_euler_frames_to_cartesian_frames(dataSkeleton, dataBVHReader.frames, animated_joints=skeleton.animated_joints)
     print(point_cloud.shape)
 
     #######################
     ## visualize point cloud data
-    skeleton_desc = skeleton.generate_bone_list_description()
-    output_frames = []
-    for frame in point_cloud:
-        output_frame = []
-        for point in frame:
-            output_frame.append({'x': point[0],
-                                 'y': point[1],
-                                 'z': point[2]})
-            output_frame_dic = {'WorldPos': output_frame}
-        output_frames.append(output_frame_dic)
+    # skeleton_desc = skeleton.generate_bone_list_description()
+    # output_frames = []
+    # for frame in point_cloud:
+    #     output_frame = []
+    #     for point in frame:
+    #         output_frame.append({'x': point[0],
+    #                              'y': point[1],
+    #                              'z': point[2]})
+    #         output_frame_dic = {'WorldPos': output_frame}
+    #     output_frames.append(output_frame_dic)
 
     # save_data = {"skeleton": skeleton_desc,
     #              "has_skeleton": True,
@@ -412,7 +505,7 @@ def IK_for_Edin_data():
 
     ref_frame = bvhreader.frames[0]
     body_plane = ['LeftUpLeg', 'LowerBack', 'RightUpLeg']
-    panim_ik_engine = PointCouldIK(skeleton, ref_frame, torso_plain=body_plane, debug=False)
+    panim_ik_engine = PointCouldIK(skeleton, ref_frame, torso_plane=body_plane, debug=False)
     output_frames = panim_ik_engine.run(point_cloud)
     save_folder, filename = os.path.split(data_file)
     save_folder = r'E:\workspace\projects\retargeting_experiments\test_data'
@@ -421,7 +514,7 @@ def IK_for_Edin_data():
               output_frames,
               skeleton.frame_time,
               is_quaternion=False)
-    convert_bvh_to_unity_json(os.path.join(save_folder, filename[:-4] + '_mesh_retargeting_new.bvh'), scale=0.1)
+    # convert_bvh_to_unity_json(os.path.join(save_folder, filename[:-4] + '_mesh_retargeting_new.bvh'), scale=0.1)
 
 
 def IK_for_different_size():
@@ -496,12 +589,13 @@ def test_panim_data_from_unity():
 
 
 def test():
-    test_file = r'E:\workspace\retargeting\makehuman_characters\fbx\cmu_skeleton'
-    bvhreader = BVHReader(test_file)
-    skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
+    # test_file = r'E:\workspace\retargeting\makehuman_characters\fbx\cmu_skeleton'
+    # bvhreader = BVHReader(test_file)
+    # skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
     # point_cloud = convert_euler_frames_to_cartesian_frames(skeleton, bvhreader.frames)
     # create_partial_direction_constraints_from_point_cloud(point_cloud, skeleton)
     # print(skeleton.nodes['LeftFoot'].parent.node_name)
+    bvhfile1 = r'E:\workspace\projects\retargeting_experiments\test_data\LocomotionFlat01_000_short_mesh_retargeting_new.bvh'
 
 
 if __name__ == "__main__":
@@ -510,4 +604,4 @@ if __name__ == "__main__":
     # test()
     # test_panim_data_from_unity()
     # IK_example()
-    IK_for_Edin_data()
+    point_cloudIK_test()
