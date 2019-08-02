@@ -1,4 +1,10 @@
 import numpy as np 
+import copy
+import os
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/..')
+from pfnn.quaternions import Quaternions
 
 
 def estimate_floor_height(foot_heights):
@@ -74,3 +80,64 @@ def combine_motion_clips(clips, motion_len, window_step):
         right_index = window_size - (window_size - residue_frames) // 2
         combined_frames = np.concatenate((combined_frames, clips[-2, left_index:right_index]), axis=0)
         return combined_frames
+
+
+def visualize_pfnn_X():
+    pass
+
+
+def visualize_pfnn_Y():
+    pass
+
+
+def covnert_pfnn_preprocessed_data_to_global_joint_positions(motion_data, use_speed=True):
+
+    """reverse the process of preprocessing from pfnn 
+    
+    Arguments:
+        motion_data {numpy.ndarray} -- n_frames * n_dims 
+    
+    Keyword Arguments:
+        use_speed {bool} -- choose to use speed data or not
+    """
+    root_velocity = motion_data[:, :2]
+    root_rvelocity = motion_data[:, 2:3]
+    # input_joint_pos -> world space
+    local_position = motion_data[:, 32:32+93] # out joint pos
+    local_velocity = motion_data[:, 32+93:32+93*2]
+    # out joint pos -> world space
+    # out joint vel
+    # ((input_joint_pos + joint vel) + out joint pos) / 2
+    anim_data = np.concatenate([local_position, local_velocity, root_velocity, root_rvelocity], axis=-1)    
+    if use_speed:
+        joints, vel, root_x, root_z, root_r = anim_data[:, :93], anim_data[:,93:93*2], anim_data[:, -3], anim_data[:, -2], anim_data[:, -1]
+
+        joints = joints.reshape((len(joints), -1, 3))  ### reshape 2D matrix to (n_frames, n_joints, n_dims)
+        vel = vel.reshape((len(vel), -1, 3))
+        rotation = Quaternions.id(1)
+        translation = np.array([[0, 0, 0]])
+        last_joints = np.array([0,0,0] * len(joints))
+        # ref_dir = np.array([0, 0, 1])
+        print("testing")
+        for i in range(len(joints)):
+            joints[i, :, :] = rotation * joints[i]
+            joints[i, :, 0] = joints[i, :, 0] + translation[0, 0]
+            joints[i, :, 2] = joints[i, :, 2] + translation[0, 2]
+            if i == 0:
+                last_joints = joints[i]
+            else:
+                vel[i, :, :] = rotation * vel[i]
+                joints[i, :, :] = ((last_joints + vel[i, :, :]) + joints[i, :, :]) / 2
+                last_joints = joints[i]
+    else:
+        joints, root_x, root_z, root_r = anim_data[:, :93], anim_data[:, -3], anim_data[:, -2], anim_data[:, -1]
+        joints = joints.reshape((len(joints), -1, 3))  ### reshape 2D matrix to (n_frames, n_joints, n_dims)
+        rotation = Quaternions.id(1)
+        translation = np.array([[0, 0, 0]])
+        for i in range(len(joints)):
+            joints[i, :, :] = rotation * joints[i]
+            joints[i, :, 0] = joints[i, :, 0] + translation[0, 0]
+            joints[i, :, 2] = joints[i, :, 2] + translation[0, 2]
+            rotation = Quaternions.from_angle_axis(-root_r[i], np.array([0, 1, 0])) * rotation
+            translation = translation + rotation * np.array([root_x[i], 0, root_z[i]])    
+    return joints
