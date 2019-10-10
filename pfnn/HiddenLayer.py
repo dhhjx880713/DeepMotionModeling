@@ -1,23 +1,27 @@
-import tensorflow as tf
 import numpy as np
-from .Layer import Layer
+import theano
+import theano.tensor as T
+from theano.tensor.shared_randomstreams import RandomStreams
 
+from .Layer import Layer
 
 class HiddenLayer(Layer):
 
-    def __init__(self, weights_shape, name='', rng=np.random):
-
-        self.name = name
+    def __init__(self, weights_shape, rng=np.random, gamma=0.01):
+                
         W_bound = np.sqrt(6. / np.prod(weights_shape[-2:]))
-        W = np.array(rng.uniform(low=-W_bound, high=W_bound, size=weights_shape),
-                     dtype=np.float32)
-        with tf.variable_scope(self.name):
-            self.W = tf.Variable(W, name='W', dtype=tf.float32)
+        W = np.asarray(
+            rng.uniform(low=-W_bound, high=W_bound, size=weights_shape),
+            dtype=theano.config.floatX)
 
+        self.W = theano.shared(name='W', value=W, borrow=True)
         self.params = [self.W]
-
+        self.gamma = gamma
+        
+    def cost(self, input):
+        return self.gamma * T.mean(abs(self.W))
+        
     def __call__(self, input):
         return self.W.dot(input.T).T
 
-    def cost(self, gamma=0.01):
-        return gamma * tf.reduce_mean(abs(self.W))
+        

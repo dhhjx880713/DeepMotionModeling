@@ -152,6 +152,43 @@ class PointCouldIK(object):
         q = Quaternion.between(bone_offset, bone_vector_local)
         return q
 
+    def align_multiple_bones1(self, joint_name, frame_data, points):
+        """align multiple non-zero length bone using average directional vector
+        
+        Arguments:
+            joint_name {str} -- [the parent joint name]
+            frame_data {numpy.array} -- [euler frame]
+            points {numpy.array} -- [n_joint * 3]
+        """
+        children = [child.node_name for child in self.skeleton.nodes[joint_name].children if np.linalg.norm(child.offset) > 1e-5]
+        if (len(children)) == 0:
+            raise ValueError("cannot handle zero-length bones!")
+        else:
+            n_children = len(children)
+            ## get global target positions
+            target_points = [points[self.skeleton.animated_joints.index(child)] for child in children]
+            ## convert global target positions into local space
+            global_trans = self.skeleton.nodes[joint_name].get_global_matrix_from_euler_frame(frame_data)
+            global_trans_inv = np.linalg.inv(global_trans)
+            local_target_points = [PointCouldIK.get_local_position(global_trans_inv, point) for point in target_points]
+            ## compute average target direcion
+            average_target_direction = np.zeros(3)
+            for i in range(n_children):
+                # average_target_direction += local_target_points[i]
+                average_target_direction += local_target_points[i] / np.linalg.norm(local_target_points[i])
+            # average_target_direction = average_target_direction/len(local_target_points)
+            average_target_direction = average_target_direction / np.linalg.norm(average_target_direction)
+            ## compute average local offset
+            average_offset = np.zeros(3)
+            local_offsets = [np.array(self.skeleton.nodes[child].offset) for child in children]
+            for i in range(n_children):
+                # average_offset += local_offsets[i]
+                average_offset += local_offsets[i] / np.linalg.norm(local_offsets[i])
+            # average_offset = average_offset / len(average_offset)
+            average_offset = average_offset / np.linalg.norm(average_offset)
+            ## compute rotation
+            return Quaternion.between(average_offset, average_target_direction)
+
     def align_multiple_bones(self, joint_name, frame_data, points):
         '''
         handle multiple children case, each case currently is handled seperately. Todo: try to get some general solution
@@ -160,29 +197,97 @@ class PointCouldIK(object):
 
         target_points = [points[self.skeleton.animated_joints.index(child.node_name)] for child in
                          self.skeleton.nodes[joint_name].children]
+        ## get global transition from updated frame
         global_trans = self.skeleton.nodes[joint_name].get_global_matrix_from_euler_frame(frame_data)
         global_trans_inv = np.linalg.inv(global_trans)
+
+
         # children_points_local = [get_local_position(global_trans_inv, point) for point in children_points]
         children_points_local = [np.asarray(child.offset) for child in self.skeleton.nodes[joint_name].children]
+        # print("left shoulder local position: ", children_points_local[0])
+        # print("neck local position: ", children_points_local[1])
+        # print("right shoulder local position: ", children_points_local[2])
         target_points_local = [PointCouldIK.get_local_position(global_trans_inv, point) for point in target_points]
+
+        # print("left shoulder target local position: ", target_points_local[0])
+        # print("neck target local position: ", target_points_local[1])
+        # print("right shoulder target local position: ", target_points_local[2])
+
+        # print("start to align multiple joints:  ")
+        # print("parent joint name: ", joint_name)
+        # print("parent target position: ", )
+        # for child in self.skeleton.nodes[joint_name].children:
+        #     print("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+        #     print("child name: ", child.node_name, ",  target position: ", points[self.skeleton.animated_joints.index(child.node_name)])
         if len(children_points_local) == 3:
             ref_vec1 = children_points_local[0] - children_points_local[1]
             ref_vec2 = children_points_local[0] - children_points_local[2]
 
             target_vec1 = target_points_local[0] - target_points_local[1]
             target_vec2 = target_points_local[0] - target_points_local[2]
-
+            # print("ref vec1: ", ref_vec1)
+            # print("ref vec2: ", ref_vec2)
             ref_orthonormal = np.cross(ref_vec1, ref_vec2)
             ref_orthonormal = ref_orthonormal / np.linalg.norm(ref_orthonormal)
+            # print("target_vec1: ", target_vec1)
+            # print("target_vec2: ", target_vec2)
 
             target_orthonormal = np.cross(target_vec1, target_vec2)
             target_orthonormal = target_orthonormal / np.linalg.norm(target_orthonormal)
 
             q1 = Quaternion.between(ref_orthonormal, target_orthonormal)
-            ref_vec1 = q1 * ref_vec1
+            new_ref_vec1 = q1 * ref_vec1
+            new_ref_vec2 = q1 * ref_vec2
+            # new_ref_orthonormal = q1 * ref_orthonormal
+            # print("new ref orthonormal: ", new_ref_orthonormal)
+            # print("target orthonormal: ", target_orthonormal)
+            # if np.allclose(new_ref_orthonormal, target_orthonormal):
+            #     print("norm vector is aligned")
+            q2 = Quaternion.between(new_ref_vec1, target_vec1)
+            q3 = Quaternion.between(new_ref_vec2, target_vec2)
+            average_q = Quaternion.slerp(q2, q3, 0.5)
+            # normalized_target_vec1 = target_vec1 / np.linalg.norm(target_vec1)
+            # normalized_target_vec2 = target_vec2 / np.linalg.norm(target_vec2)
+            # ## debuging
+            # print("######################### Debug for joint: ", joint_name)
+            # # tmp = q1 * ref_orthonormal
+            # # print("calculated normal", tmp)
+            # # print("reference normal: ", ref_orthonormal)
+            # # print("target normal: ", target_orthonormal)
 
-            q2 = Quaternion.between(ref_vec1, target_vec1)
-            return q2 * q1
+            # new_ref_vec1 = q2 * new_ref_vec1
+            # # print("global position after rotation: ", np.dot(global_trans, ))
+
+            # new_ref_vec1 = new_ref_vec1 / np.linalg.norm(new_ref_vec1)
+            # q_rot = q2 * q1
+            # ref_vec1 = q_rot * ref_vec1
+            # ref_vec1 = ref_vec1 / np.linalg.norm(ref_vec1)
+            # target_vec1 = target_vec1 / np.linalg.norm(target_vec1)
+            # print("target ref vec1: ", normalized_target_vec1)
+            # print("calcualted reference vec1: ", new_ref_vec1)
+            # print("another ref vec1: ", ref_vec1)
+            # if np.allclose(new_ref_vec1, normalized_target_vec1):
+            #     print("Referece vector 1 is aligned.")
+            # else:
+            #     print("Referece vector 1 is not aligned.")
+            
+            # leftshoulder_local_pos = q_rot * children_points_local[0]
+            # neck_local_pos = q_rot * children_points_local[1]
+            # RightShoulder_local_pos = q_rot * children_points_local[2]
+            # print("calculated leftshoulder_local_pos: ", leftshoulder_local_pos)
+            # print("calculated neck_local_pos: ", neck_local_pos)
+            # print("calculated RightShoulder_local_pos: ", RightShoulder_local_pos)
+
+            # print("UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU")
+            # print("target vector 1: ", normalized_target_vec1)
+            # print("target vector 2: ", normalized_target_vec2)
+            # t1 = leftshoulder_local_pos - neck_local_pos
+            # t2 = leftshoulder_local_pos - RightShoulder_local_pos
+            # print(t1/np.linalg.norm(t1))
+            # print(t2/np.linalg.norm(t2))
+
+            # print("UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU")
+            return average_q * q1
         else:
             raise NotImplementedError
     
@@ -320,14 +425,43 @@ class PointCouldIK(object):
                     just align the joint with non-zero bone length
                     '''
                 elif zero_bone_number == 0:
-                    q = self.align_multiple_bones(joint_name, frame_data, points)
-
+                    # print("the name of no zero-length joint: ", joint_name)
+                    # q = self.align_multiple_bones(joint_name, frame_data, points)
+                    q = self.align_multiple_bones1(joint_name, frame_data, points)
+                    # q = self.align_single_bone(joint_name, 'Neck', frame_data, points)
                     local_rotation = self.skeleton.nodes[joint_name].get_local_matrix_from_euler(frame_data)
 
                     local_rotation_q = Quaternion.fromMat(local_rotation[:3, :3])
+                    # print("calcualted rotation: ", q)
                     new_local_rotation = local_rotation_q * q
+                    # new_local_rotation = q * local_rotation_q
                     frame_data[self.skeleton.nodes[
                         joint_name].rotation_channel_indices] = new_local_rotation.toEulerAnglesDegree()
+                    ## check each target child direction is reached or not
+                    # for child in children:
+                    #     # print("@@@@@@@@@@@@@@@@@@@@  child name is: ", child.node_name)
+                    #     child_joint_name = child.node_name
+                    #     child_joint_position = self.skeleton.nodes[child_joint_name].get_global_position_from_euler(frame_data)
+                    #     parent_joint_position = self.skeleton.nodes[joint_name].get_global_position_from_euler(frame_data)
+                    #     bone_dir = child_joint_position - parent_joint_position
+                    #     bone_dir = bone_dir / np.linalg.norm(bone_dir)
+                    #     # print("calculated bone direction: ", bone_dir)
+
+                    #     target_child_poition = points[self.skeleton.nodes[child_joint_name].index]
+                    #     target_parent_position = points[self.skeleton.nodes[joint_name].index]
+                    #     target_bone_dir = target_child_poition - target_parent_position
+                    #     target_bone_dir = target_bone_dir / np.linalg.norm(target_bone_dir)
+
+                    #     # print("target bone direction: ", target_bone_dir)
+                    #     # print("target bone position is: ", target_child_poition)
+                    #     # print("calculated bone position is: ", child_joint_position)
+                    #     if np.allclose(bone_dir, target_bone_dir):
+                    #         print(child_joint_name + " reaches the target.")
+                    #     else:
+                    #         print(child_joint_name + " misses the target.")
+                    #         # print("calculated bone direction: ", bone_dir)
+                    #         # print("target bone direction: ", target_bone_dir)
+                    #     # print("**********************")
 
                 else:
                     raise NotImplementedError
@@ -420,6 +554,10 @@ class PointCouldIK(object):
         :param pos: numpy 3 array
         :return:
         '''
+        return np.dot(trans_mat, np.append(pos, 1))[:-1]
+
+    @staticmethod
+    def get_global_position(trans_mat, pos):
         return np.dot(trans_mat, np.append(pos, 1))[:-1]
 
 

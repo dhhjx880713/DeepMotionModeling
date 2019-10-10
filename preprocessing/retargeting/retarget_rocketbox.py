@@ -5,7 +5,8 @@ import sys
 import numpy as np
 import glob
 import copy
-sys.path.insert(0, os.path.abspath('.'))
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/../..')
 from mosi_utils_anim.animation_data.retargeting.directional_constraints_retargeting import retarget_motion, \
     estimate_scale_factor, retarget_single_motion, create_direction_constraints, align_ref_frame, retarget_folder
 from mosi_utils_anim.animation_data import BVHReader, Skeleton, BVHWriter

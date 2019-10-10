@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.absolute())+ r'/..')
 from mosi_utils_anim.animation_data import BVHReader, SkeletonBuilder
 from mosi_utils_anim.utilities import write_to_json_file
 from mosi_utils_anim.animation_data import Quaternions
-
+from models.fully_connected_autoencoder import FullyConnectedEncoder
 
 from nn.spectrum_pooling import spectrum_pooling_1d
 from nn.unpooling import spectrum_unpooling_1d, average_unpooling_1d

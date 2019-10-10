@@ -83,14 +83,292 @@ def retarget_game_engine_to_mk_cmu_folder(input_path, output_path, skeleton_file
 
 
 def retarget_game_engine_to_mk_cmu_single_file():
-    content_motion_file = r'E:\workspace\mocap_data\game_engine_retargeting\ulm_locomotion\Take_walk\walk_001_1.bvh'
-    skeleton_file = r'E:\workspace\retargeting\makehuman_characters\fbx\cmu_skeleton\cmu_skeleton.bvh'
+    content_motion_file = r'E:\workspace\mocap_data\game_engine_retargeting\hdm05\HDM_bd_cartwheelLHandStart1Reps_001_120.bvh'
+    skeleton_file = r'E:\workspace\mocap_data\skeleton_template\mk_cmu_T_pose.bvh'
     save_path = r'E:\workspace\projects\retargeting_experiments\retargeted_results'
     root_joint = "Hips"
     src_body_plane = ['thigh_r', 'Root', 'thigh_l']
     target_body_plane = ['LeftUpLeg', 'Hips', 'RightUpLeg']    
     retarget_single_motion(content_motion_file, skeleton_file, content_motion_file, save_path, root_joint, src_body_plane,
                            target_body_plane, GAME_ENGINE_TO_MH_CMU_MAPPING)
+
+
+def retarget_accad():
+    ACCAD_joint_mapping = {  ## left: target skeleton, right : source skeleton
+    "Hips": "pelvis",
+    "LeftUpLeg": "thigh_l",
+    "LeftLeg": "calf_l",
+    "LeftFoot": "foot_l",
+    "LeftToeBase": "ball_l",
+    "RightUpLeg": "thigh_r",
+    "RightLeg": "calf_r",
+    "RightFoot": "foot_r",
+    "RightToeBase": "ball_r",
+    # "LowerBack": "spine_01",
+    # "Spine": "spine_02",
+    "Spine1": "spine_03",
+    # "Neck1": "neck_01",
+    "Head": "head",
+    "LeftShoulder": "clavicle_l",
+    "LeftArm": "upperarm_l",
+    "LeftForeArm": "lowerarm_l",
+    "LeftHand": "hand_l",
+    "RightShoulder": "clavicle_r",
+    "RightArm": "upperarm_r",
+    "RightForeArm": "lowerarm_r",
+    "RightHand": "hand_r"
+    }
+    ACCAD_joint_mapping = {y:x for x, y in ACCAD_joint_mapping.items()}
+    # skeleton_file = r'E:\workspace\mocap_data\skeleton_template\mk_cmu_T_pose.bvh'
+    skeleton_file = r'E:\workspace\mocap_data\skeleton_template\mk_cmu_skeleton.bvh'
+    input_path = r'E:\workspace\mocap_data\game_engine_retargeting\ACCAD'
+    # output_path = r'E:\workspace\mocap_data\mk_cmu_retargeting\ACCAD'
+    output_path = r'E:\workspace\mocap_data\mk_cmu_retargeting_default_pose\ACCAD'
+    root_joint = "Hips"
+    src_body_plane = ['thigh_r', 'Root', 'thigh_l']
+    target_body_plane = ['LeftUpLeg', 'Hips', 'RightUpLeg'] 
+    retarget_game_engine_to_mk_cmu_folder(input_path, output_path, skeleton_file, ACCAD_joint_mapping, root_joint, src_body_plane, target_body_plane)                          
+
+
+def retarget_pfnn():
+    pfnn_joint_mapping = {
+    "Hips": "pelvis",
+    "LeftUpLeg": "thigh_l",
+    "LeftLeg": "calf_l",
+    "LeftFoot": "foot_l",
+    "LeftToeBase": "ball_l",
+    "RightUpLeg": "thigh_r",
+    "RightLeg": "calf_r",
+    "RightFoot": "foot_r",
+    "RightToeBase": "ball_r",
+    # "LowerBack": "spine_01",
+    # "Spine": "spine_02",
+    # "Spine1": "spine_03",
+    # "Neck1": "neck_01",
+    "Head": "head",
+    "LeftShoulder": "clavicle_l",
+    "LeftArm": "upperarm_l",
+    "LeftForeArm": "lowerarm_l",
+    "LeftHand": "hand_l",
+    "RightShoulder": "clavicle_r",
+    "RightArm": "upperarm_r",
+    "RightForeArm": "lowerarm_r",
+    "RightHand": "hand_r"
+    }
+    ACCAD_joint_mapping = {y:x for x, y in ACCAD_joint_mapping.items()}
+    skeleton_file = r'E:\workspace\mocap_data\skeleton_template\mk_cmu_T_pose.bvh'
+    input_path = r'E:\workspace\mocap_data\game_engine_retargeting\ACCAD'
+    output_path = r'E:\workspace\mocap_data\mk_cmu_retargeting\ACCAD'
+    root_joint = "Hips"
+    src_body_plane = ['thigh_r', 'Root', 'thigh_l']
+    target_body_plane = ['LeftUpLeg', 'Hips', 'RightUpLeg'] 
+    retarget_game_engine_to_mk_cmu_folder(input_path, output_path, skeleton_file, ACCAD_joint_mapping, root_joint, src_body_plane, target_body_plane)                          
+
+def retarget_edin():
+    joint_mapping = {
+    "Hips": "pelvis",
+    "LeftUpLeg": "thigh_l",
+    "LeftLeg": "calf_l",
+    "LeftFoot": "foot_l",
+    "LeftToeBase": "ball_l",
+    "RightUpLeg": "thigh_r",
+    "RightLeg": "calf_r",
+    "RightFoot": "foot_r",
+    "RightToeBase": "ball_r",
+    # "LowerBack": "spine_01",
+    # "Spine": "spine_02",
+    "Spine1": "spine_03",
+    # "Neck1": "neck_01",
+    "Head": "head",
+    # "LeftShoulder": "clavicle_l",
+    "LeftArm": "upperarm_l",
+    "LeftForeArm": "lowerarm_l",
+    "LeftHand": "hand_l",
+    # "RightShoulder": "clavicle_r",
+    "RightArm": "upperarm_r",
+    "RightForeArm": "lowerarm_r",
+    "RightHand": "hand_r"
+    }
+    joint_mapping = {y:x for x, y in joint_mapping.items()}
+    skeleton_file = r'E:\workspace\mocap_data\skeleton_template\mk_cmu_skeleton.bvh'
+    input_path = r'E:\workspace\mocap_data\game_engine_retargeting\edin'
+    output_path = r'E:\workspace\mocap_data\mk_cmu_retargeting_default_pose\edin'
+    root_joint = "Hips"
+    src_body_plane = ['thigh_r', 'Root', 'thigh_l']
+    target_body_plane = ['LeftUpLeg', 'Hips', 'RightUpLeg'] 
+    #########################
+    # content_motion_file = r'E:\workspace\mocap_data\game_engine_retargeting\edin\edin_locomotion\locomotion_run_000_000.bvh'
+    # save_path = r'E:\workspace\projects\retargeting_experiments\retargeted_results'
+ 
+    # retarget_single_motion(content_motion_file, skeleton_file, content_motion_file, save_path, root_joint, src_body_plane,
+    #                        target_body_plane, joint_mapping)
+    #########################
+    retarget_game_engine_to_mk_cmu_folder(input_path, output_path, skeleton_file, joint_mapping, root_joint, src_body_plane, target_body_plane)                          
+
+
+def retarget_hdm05():
+    joint_mapping = {
+    "Hips": "pelvis",
+    "LeftUpLeg": "thigh_l",
+    "LeftLeg": "calf_l",
+    "LeftFoot": "foot_l",
+    "LeftToeBase": "ball_l",
+    "RightUpLeg": "thigh_r",
+    "RightLeg": "calf_r",
+    "RightFoot": "foot_r",
+    "RightToeBase": "ball_r",
+    # "LowerBack": "spine_01",
+    # "Spine": "spine_02",
+    # "Spine1": "spine_03",
+    # "Neck1": "neck_01",
+    "Head": "head",
+    # "LeftShoulder": "clavicle_l",
+    "LeftArm": "upperarm_l",
+    "LeftForeArm": "lowerarm_l",
+    "LeftHand": "hand_l",
+    # "RightShoulder": "clavicle_r",
+    "RightArm": "upperarm_r",
+    "RightForeArm": "lowerarm_r",
+    "RightHand": "hand_r"
+    }
+    joint_mapping = {y:x for x, y in joint_mapping.items()}
+    skeleton_file = r'E:\workspace\mocap_data\skeleton_template\mk_cmu_T_pose.bvh'
+    input_path = r'E:\workspace\mocap_data\game_engine_retargeting\hdm05'
+    output_path = r'E:\workspace\mocap_data\mk_cmu_retargeting\hdm05'
+    root_joint = "Hips"
+    src_body_plane = ['thigh_r', 'Root', 'thigh_l']
+    target_body_plane = ['LeftUpLeg', 'Hips', 'RightUpLeg'] 
+    retarget_game_engine_to_mk_cmu_folder(input_path, output_path, skeleton_file, joint_mapping, root_joint, src_body_plane, target_body_plane)                          
+
+
+def retarget_cmu():
+    joint_mapping = {
+    "Hips": "pelvis",
+    "LeftUpLeg": "thigh_l",
+    "LeftLeg": "calf_l",
+    "LeftFoot": "foot_l",
+    "LeftToeBase": "ball_l",
+    "RightUpLeg": "thigh_r",
+    "RightLeg": "calf_r",
+    "RightFoot": "foot_r",
+    "RightToeBase": "ball_r",
+    # "LowerBack": "spine_01",
+    # "Spine": "spine_02",
+    "Spine1": "spine_03",
+    "Neck1": "neck_01",
+    "Head": "head",
+    # "LeftShoulder": "clavicle_l",
+    "LeftArm": "upperarm_l",
+    "LeftForeArm": "lowerarm_l",
+    "LeftHand": "hand_l",
+    # "RightShoulder": "clavicle_r",
+    "RightArm": "upperarm_r",
+    "RightForeArm": "lowerarm_r",
+    "RightHand": "hand_r"
+    }   
+    joint_mapping = {y:x for x, y in joint_mapping.items()}
+    skeleton_file = r'E:\workspace\mocap_data\skeleton_template\mk_cmu_skeleton.bvh'
+    input_path = r'E:\workspace\mocap_data\game_engine_retargeting\cmu'
+    output_path = r'E:\workspace\mocap_data\mk_cmu_retargeting_default_pose\cmu'
+    root_joint = "Hips"
+    src_body_plane = ['thigh_r', 'Root', 'thigh_l']
+    target_body_plane = ['LeftUpLeg', 'Hips', 'RightUpLeg'] 
+    ########################
+    content_motion_file = r'E:\workspace\mocap_data\game_engine_retargeting\cmu\32_09.bvh'
+    save_path = r'E:\workspace\projects\retargeting_experiments\retargeted_results'
+ 
+    retarget_single_motion(content_motion_file, skeleton_file, content_motion_file, save_path, root_joint, src_body_plane,
+                           target_body_plane, joint_mapping)
+    #########################
+    # retarget_game_engine_to_mk_cmu_folder(input_path, output_path, skeleton_file, joint_mapping, root_joint, src_body_plane, target_body_plane)                          
+
+
+def retarget_style():
+    joint_mapping = {
+    "Hips": "pelvis",
+    "LeftUpLeg": "thigh_l",
+    "LeftLeg": "calf_l",
+    "LeftFoot": "foot_l",
+    "LeftToeBase": "ball_l",
+    "RightUpLeg": "thigh_r",
+    "RightLeg": "calf_r",
+    "RightFoot": "foot_r",
+    "RightToeBase": "ball_r",
+    # "LowerBack": "spine_01",
+    # "Spine": "spine_02",
+    # "Spine1": "spine_03",
+    # "Neck1": "neck_01",
+    # "Head": "head",
+    "LeftShoulder": "clavicle_l",
+    "LeftArm": "upperarm_l",
+    "LeftForeArm": "lowerarm_l",
+    "LeftHand": "hand_l",
+    "RightShoulder": "clavicle_r",
+    "RightArm": "upperarm_r",
+    "RightForeArm": "lowerarm_r",
+    "RightHand": "hand_r"
+    }   
+    joint_mapping = {y:x for x, y in joint_mapping.items()}
+    skeleton_file = r'D:\workspace\mocap_data\skeleton_template\mk_cmu_skeleton.bvh'
+    # input_path = r'E:\workspace\mocap_data\game_engine_retargeting\stylized_data_raw'
+    # output_path = r'E:\workspace\mocap_data\mk_cmu_retargeting_default_pose\stylized_data_raw'
+    input_path = r'D:\workspace\experiment data\cutted_holden_data_walking\game_engine_retargeting\childlike'
+    output_path = os.path.join(input_path, 'mk_cmu')
+    root_joint = "Hips"
+    src_body_plane = ['thigh_r', 'Root', 'thigh_l']
+    target_body_plane = ['LeftUpLeg', 'Hips', 'RightUpLeg'] 
+    ########################
+    # content_motion_file = r'E:\workspace\mocap_data\game_engine_retargeting\stylized_data_raw\sexy_normal walking_48.bvh'
+    # save_path = r'E:\workspace\projects\retargeting_experiments\retargeted_results'
+ 
+    # retarget_single_motion(content_motion_file, skeleton_file, content_motion_file, save_path, root_joint, src_body_plane,
+    #                        target_body_plane, joint_mapping)
+    #########################
+    retarget_game_engine_to_mk_cmu_folder(input_path, output_path, skeleton_file, joint_mapping, root_joint, src_body_plane, target_body_plane)                          
+
+
+def retarget_ulm():
+    joint_mapping = {
+    "Hips": "pelvis",
+    "LeftUpLeg": "thigh_l",
+    "LeftLeg": "calf_l",
+    "LeftFoot": "foot_l",
+    "LeftToeBase": "ball_l",
+    "RightUpLeg": "thigh_r",
+    "RightLeg": "calf_r",
+    "RightFoot": "foot_r",
+    "RightToeBase": "ball_r",
+    # "LowerBack": "spine_01",
+    # "Spine": "spine_02",
+    # "Spine1": "spine_03",
+    # "Neck1": "neck_01",
+    "Head": "head",
+    "LeftShoulder": "clavicle_l",
+    "LeftArm": "upperarm_l",
+    "LeftForeArm": "lowerarm_l",
+    "LeftHand": "hand_l",
+    "RightShoulder": "clavicle_r",
+    "RightArm": "upperarm_r",
+    "RightForeArm": "lowerarm_r",
+    "RightHand": "hand_r"
+    }   
+    joint_mapping = {y:x for x, y in joint_mapping.items()}
+    skeleton_file = r'D:\workspace\mocap_data\skeleton_template\mk_cmu_skeleton.bvh'
+    input_path = r'D:\workspace\mocap_data\game_engine_retargeting\ulm_locomotion'
+    output_path = r'D:\workspace\mocap_data\mk_cmu_retargeting_default_pose\sulm_locomotion'
+
+    root_joint = "Hips"
+    src_body_plane = ['thigh_r', 'Root', 'thigh_l']
+    target_body_plane = ['LeftUpLeg', 'Hips', 'RightUpLeg'] 
+    ########################
+    # content_motion_file = r'E:\workspace\mocap_data\game_engine_retargeting\ulm_locomotion\Take_walk\walk_001_1.bvh'
+    # save_path = r'E:\workspace\projects\retargeting_experiments\retargeted_results'
+ 
+    # retarget_single_motion(content_motion_file, skeleton_file, content_motion_file, save_path, root_joint, src_body_plane,
+    #                        target_body_plane, joint_mapping)
+    #########################
+    retarget_game_engine_to_mk_cmu_folder(input_path, output_path, skeleton_file, joint_mapping, root_joint, src_body_plane, target_body_plane)                          
+
 
 
 if __name__ == "__main__":
@@ -100,11 +378,18 @@ if __name__ == "__main__":
     # input_path = r'E:\workspace\mocap_data\game_engine_retargeting\edin'
     # input_path = r'E:\workspace\mocap_data\game_engine_retargeting\hdm05'
     # input_path = r'E:\workspace\mocap_data\game_engine_retargeting\ulm'
-    input_path = r'E:\workspace\mocap_data\game_engine_retargeting\stylized_data_raw'
-    output_path = r'E:\workspace\mocap_data\mk_cmu_retargeting\stylized_data_raw'
-    skeleton_file = r'E:\workspace\retargeting\makehuman_characters\fbx\cmu_skeleton\cmu_skeleton.bvh'
-    root_joint = "Hips"
-    src_body_plane = ['thigh_r', 'Root', 'thigh_l']
-    target_body_plane = ['LeftUpLeg', 'Hips', 'RightUpLeg'] 
-    retarget_game_engine_to_mk_cmu_folder(input_path, output_path, skeleton_file, GAME_ENGINE_TO_MH_CMU_MAPPING, root_joint,
-                                          src_body_plane, target_body_plane) 
+    # input_path = r'E:\workspace\mocap_data\game_engine_retargeting\ulm_locomotion'
+    # input_path = r'E:\workspace\mocap_data\test\game_engine'
+    # output_path = r'E:\workspace\mocap_data\test\cmu'
+    # skeleton_file = r'E:\workspace\retargeting\makehuman_characters\fbx\cmu_skeleton\cmu_skeleton.bvh'
+    # root_joint = "Hips"
+    # src_body_plane = ['thigh_r', 'Root', 'thigh_l']
+    # target_body_plane = ['LeftUpLeg', 'Hips', 'RightUpLeg'] 
+    # retarget_game_engine_to_mk_cmu_folder(input_path, output_path, skeleton_file, GAME_ENGINE_TO_MH_CMU_MAPPING, root_joint,
+    #                                       src_body_plane, target_body_plane) 
+    # retarget_accad()
+    # retarget_hdm05()
+    # retarget_cmu()
+    # retarget_edin()
+    retarget_style()
+    # retarget_ulm()

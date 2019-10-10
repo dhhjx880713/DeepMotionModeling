@@ -21,9 +21,18 @@ class Layer(object):
             for param in self.params:
                 # print(param.name)
                 if not mapping_dict is None:
-                    assign_op = param.assign(database[mapping_dict[prefix+param.name]])
+                    if prefix+param.name in mapping_dict.keys():
+                        if mapping_dict[prefix+param.name] in database.keys():
+                            assign_op = param.assign(database[mapping_dict[prefix+param.name]])
+                        else:
+                            print(prefix+param.name + " is not in the database.")
+                    else:
+                        print(prefix+param.name + " has no mapping.")
                 else:
-                    assign_op = param.assign(database[prefix+param.name])
+                    if mapping_dict[prefix+param.name] in database.keys():
+                        assign_op = param.assign(database[prefix+param.name])
+                    else:
+                        print(prefix+param.name + " is not in the database.")                    
                 sess.run(assign_op)
 
     def cost(self):

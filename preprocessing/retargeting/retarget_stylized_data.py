@@ -1,37 +1,16 @@
 # encoding: UTF-8
 
-from retarget_motion_using_direction import *
-from morphablegraphs.animation_data import BVHReader, BVHWriter, SkeletonBuilder
-import glob
-from retarget_motion_using_direction import retarget_motion, estimate_scale_factor, retarget_single_motion, \
-    create_direction_constraints, align_ref_frame, retarget_folder
 import os
+import collections
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/../..')
+from mosi_utils_anim.animation_data.retargeting.directional_constraints_retargeting import retarget_motion, \
+    estimate_scale_factor, retarget_single_motion, create_direction_constraints, align_ref_frame, retarget_folder
 import copy
 
 
 ## joint mapping from source skeleton to target skeleton
-JOINT_MAPPING = dict()
-JOINT_MAPPING["root"] = "pelvis"
-JOINT_MAPPING["thorax"] = "spine_03"
-JOINT_MAPPING["lclavicle"] = "clavicle_l"
-JOINT_MAPPING["rclavicle"] = "clavicle_r"
-JOINT_MAPPING["lhumerus"] = "upperarm_l"
-JOINT_MAPPING["rhumerus"] = "upperarm_r"
-JOINT_MAPPING["lradius"] = "lowerarm_l"
-JOINT_MAPPING["rradius"] = "lowerarm_r"
-JOINT_MAPPING["lhand"] = "hand_l"
-JOINT_MAPPING["rhand"] = "hand_r"
-JOINT_MAPPING["lfemur"] = "thigh_l"
-JOINT_MAPPING["rfemur"] = "thigh_r"
-JOINT_MAPPING["ltibia"] = "calf_l"
-JOINT_MAPPING["rtibia"] = "calf_r"
-JOINT_MAPPING["lfoot"] = "foot_l"
-JOINT_MAPPING["rfoot"] = "foot_r"
-JOINT_MAPPING["ltoes"] = "ball_l"
-JOINT_MAPPING["rtoes"] = "ball_r"
-JOINT_MAPPING["head"] = "head"
-
-
 JOINT_MAPPING = dict()
 JOINT_MAPPING["root"] = "pelvis"
 JOINT_MAPPING["thorax"] = "spine_03"
@@ -159,7 +138,51 @@ def retarget_stylized_data_folder():
                     src_body_plane, target_body_plane=None)
 
 
+def retarget_style():
+    joint_mapping = {  ## from target to source
+    "Hips": "root",
+    "LeftUpLeg": "lfemur",
+    "LeftLeg": "ltibia",
+    "LeftFoot": "lfoot",
+    "LeftToeBase": "ltoes",
+    "RightUpLeg": "rfemur",
+    "RightLeg": "rtibia",
+    "RightFoot": "rfoot",
+    "RightToeBase": "rtoes",
+
+    # "Spine1": "thorax",
+    # "Neck1": "neck_01",
+    "Head": "head",
+    "LeftShoulder": "lclavicle",
+    "LeftArm": "lhumerus",
+    "LeftForeArm": "lradius",
+    "LeftHand": "lhand",
+    "RightShoulder": "rclavicle",
+    "RightArm": "rhumerus",
+    "RightForeArm": "rradius",
+    "RightHand": "rhand"
+    }   
+    joint_mapping = {y:x for x, y in joint_mapping.items()}
+    skeleton_file = r'E:\workspace\mocap_data\skeleton_template\mk_cmu_skeleton.bvh'
+    input_path = r'E:\workspace\mocap_data\game_engine_retargeting\cmu'
+    output_path = r'E:\workspace\mocap_data\mk_cmu_retargeting_default_pose\cmu'
+    root_joint = "Hips"
+    src_body_plane = ['rfemur', 'thorax', 'lfemur']
+    target_body_plane = ['LeftUpLeg', 'LowerBack', 'RightUpLeg'] 
+    ########################
+    content_motion_file = r'E:\workspace\mocap_data\raw_data\xia_stylized_data\extracted_bvh\sexy_normal walking_48.bvh'
+    save_path = r'E:\workspace\projects\retargeting_experiments\retargeted_results'
+ 
+    retarget_single_motion(content_motion_file, skeleton_file, content_motion_file, save_path, root_joint, src_body_plane,
+                           target_body_plane, joint_mapping)
+    #########################
+    # retarget_game_engine_to_mk_cmu_folder(input_path, output_path, skeleton_file, joint_mapping, root_joint, src_body_plane, target_body_plane)                          
+
+
+
+
 if __name__ == "__main__":
     # run_retarget_single_motion()
     # retarget_stylized_data()
-    retarget_stylized_data_folder()
+    # retarget_stylized_data_folder()
+    retarget_style()

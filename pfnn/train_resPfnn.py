@@ -1,0 +1,76 @@
+import numpy as np
+import os
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/..')
+from pfnn.ResPFNN import ResPFNN
+from pfnn.train_vanilla_pfnn import get_training_data
+import tensorflow as tf
+
+
+def train_diagonal_resPfnn():
+    target_style = "angry"
+    model_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn\network_parameters\cmu_ground\network.npz'
+    training_data_path = r'D:\workspace\projects\variational_style_simulation\training_data\pfnn_preprocessing\mk_cmu_database' + '_' + target_style + '.npz'
+
+    meta_data_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn\network_parameters\cmu_ground'
+    save_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn\network_parameters\mk_cmu_ground_residual\diagonal'
+    input_data, output_data = get_training_data(training_data_path, meta_data_path)
+    n_controls = 4
+    batchsize = 32
+    dropout = 0.7
+    n_epoches = 300
+    style_dims = 30
+    model = ResPFNN(n_controls, input_data.shape[1], output_data.shape[1], style_dims, dropout, batchsize)
+    # model.create_model()
+    model.create_model_diagonal()
+
+    database = np.load(model_path)
+    model.load_params_from_theano(database)
+    # model.train(input_data, output_data, n_epoches=100)
+    model.style_fine_turning(input_data, output_data, n_epoches=n_epoches, learning_rate=1e-3)
+    model.save_model(r'trained_models/finetuned_diagonal' + target_style + '_' + str(n_epoches) +  '.ckpt')
+    save_folder = os.path.join(save_path, target_style, str(n_epoches))
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder)
+    model.save_params(save_folder, num_points=50)
+    # model.save_style_params(save_folder)
+    model.save_style_diagonal_params(save_folder)
+
+
+    # model.create_test_model()
+    # model.train_model(input_data, output_data, n_epoches=100)
+
+
+def train_resPfnn():
+    target_style = "angry"
+    model_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn\network_parameters\cmu_ground\network.npz'
+    training_data_path = r'D:\workspace\projects\variational_style_simulation\training_data\pfnn_preprocessing\mk_cmu_database' + '_' + target_style + '.npz'
+
+    meta_data_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn\network_parameters\cmu_ground'
+    save_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn\network_parameters\mk_cmu_ground_residual'
+    input_data, output_data = get_training_data(training_data_path, meta_data_path)
+    n_controls = 4
+    batchsize = 32
+    dropout = 0.7
+    n_epoches = 300
+    style_dims = 30
+    model = ResPFNN(n_controls, input_data.shape[1], output_data.shape[1], style_dims, dropout, batchsize)
+    model.create_model()
+
+    database = np.load(model_path)
+    model.load_params_from_theano(database)
+    # model.train(input_data, output_data, n_epoches=100)
+    model.style_fine_turning(input_data, output_data, n_epoches=n_epoches, learning_rate=1e-3)
+    # model.save_model(r'trained_models/finetuned_' + target_style + '_' + str(n_epoches) +  '.ckpt')
+    save_folder = os.path.join(save_path, target_style, str(n_epoches))
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder)
+    model.save_params(save_folder, num_points=50)
+    model.save_style_params(save_folder)
+
+
+
+if __name__ == "__main__":
+    # train_resPfnn()
+    train_diagonal_resPfnn()

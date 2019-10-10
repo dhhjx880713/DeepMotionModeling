@@ -1,7 +1,11 @@
 # encoding: UTF-8
-from retarget_motion_using_direction import retarget_motion, estimate_scale_factor, retarget_single_motion, \
-    create_direction_constraints, align_ref_frame, retarget_folder
 import os
+import collections
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/../..')
+from mosi_utils_anim.animation_data.retargeting.directional_constraints_retargeting import retarget_motion, \
+    estimate_scale_factor, retarget_single_motion, create_direction_constraints, align_ref_frame, retarget_folder
 
 
 ULM_TO_GAME_ENGINE_MAP = dict()
