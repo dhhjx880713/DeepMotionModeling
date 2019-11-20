@@ -10,12 +10,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.absolute())+ r'/..')
 from mosi_utils_anim.animation_data import BVHReader, SkeletonBuilder
 from mosi_utils_anim.utilities import write_to_json_file
-from mosi_utils_anim.animation_data import Quaternions
 from models.fully_connected_autoencoder import FullyConnectedEncoder
-
+from preprocessing.preprocessing import process_file
 from nn.spectrum_pooling import spectrum_pooling_1d
 from nn.unpooling import spectrum_unpooling_1d, average_unpooling_1d
-
+from models.simple_models import motion_decoder_channel_first, motion_encoder_channel_first, \
+    motion_encoder_without_pooling, motion_decoder_without_pooling, motion_encoder_stride, motion_decoder_stride, motion_decoder_stride2d
+from utilities.utils import export_point_cloud_data_without_foot_contact, combine_motion_clips, export_point_cloud_data_without_foot_contact
 
 
 GAME_ENGINE_SKELETON = collections.OrderedDict(
@@ -45,196 +46,127 @@ GAME_ENGINE_SKELETON = collections.OrderedDict(
 )
 
 
-def demo_motion_encoder_spectrum_pooling_single_file():
-    preprocess = np.load('preprocessed_core_channel_first.npz')
-    # test_file = r'C:\repo\data\1 - MoCap\2.1 - GameSkeleton retargeting\ulm\Take_carry\carry_041_3.bvh'
-    test_file = r'C:\repo\data\1 - MoCap\2.1 - GameSkeleton retargeting\edin\edin_locomotion\locomotion_walk_001_000.bvh'
-    # test_file = r'C:\repo\data\1 - MoCap\2.1 - GameSkeleton retargeting\stylized_data\angry\angry_normalwalking_2.bvh'
-    # test_file = r'C:\repo\data\1 - MoCap\4 - Alignment\elementary_action_walk\leftStance_game_engine_skeleton_new_grounded\walk_s_016_leftStance_564_623.bvh'
-    # test_file = r'C:\repo\data\1 - MoCap\4 - Alignment\elementary_action_angryWalk\leftStance\walk_angry_normalwalking_2_leftStance_0_93.bvh'
-    bvhreader = BVHReader(test_file)
-    frame_len = len(bvhreader.frames)
-    print('number of frames: ', frame_len)
-    filename = os.path.split(test_file)[-1]
+def demo_motion_encoder_spectrum_pooling_single_file(bvhfile):
+    """encode a bvhfile using trained model. The skeleton should be the same as the model
+    
+    Arguments:
+        bvhfile {str} -- path to bvh file
+    """
+    meta_data = r'../data/models/preprocessed_core_channel_first.npz'
+    if not os.path.exists(meta_data):
+        print("run load_data to create data folder!")
+        return
+    else:
+        preprocess = np.load(meta_data)
+        bvhreader = BVHReader(bvhfile)
+        frame_len = len(bvhreader.frames)
+        print('number of frames: ', frame_len)
+        filename = os.path.split(bvhfile)[-1]
 
-    test_data = process_file(test_file, sliding_window=True)
-    assert test_data is not None
-    test_data = np.swapaxes(test_data, 1, 2)
-    print('input clips: ', test_data.shape)
-    if test_data.shape[2] % 2 != 0:
-        test_data = test_data[:, :, :-1]
-    n_samples, n_dims, n_frames = test_data.shape
-    normalized_data = (test_data - preprocess['Xmean']) / preprocess['Xstd']
-    input = tf.placeholder(tf.float32, shape=[1, n_dims, n_frames])
-    encoder_op = motion_encoder_channel_first(input, name='encoder', hidden_units=256, pooling='spectrum',
-                                              kernel_size=25)
-    # print(encoder_op.shape)
-    decoder_op = motion_decoder_channel_first(encoder_op, n_dims, name='decoder', unpool='spectrum', kernel_size=25)
-
-    # encoder_op = motion_encoder_channel_first(input, name='encoder', hidden_units=256, pooling='average')
-    # decoder_op = motion_decoder_channel_first(encoder_op, n_dims, name='decoder', unpool='average')
-
-    pool_input = tf.placeholder(dtype=tf.float32, shape=[1, n_dims, n_frames])
-    pooled_decoder = spectrum_pooling_1d(pool_input, pool_size=2, N=512)
-    # print(decoder_op.shape)
-    unpooled_decoder = spectrum_unpooling_1d(pooled_decoder, pool_size=2, N=512)
-
-    # average_pooled_decoder = tf.layers.average_pooling1d(input, 2, strides=2, data_format='channels_first')
-    # average_unpooled_decoder = average_unpooling_1d(average_pooled_decoder, 2, data_format='channels_first')
-    saver = tf.train.Saver()
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    reconstructed_clips = []
-    with tf.Session(config=config) as sess:
-        sess.run(tf.global_variables_initializer())
-        saver.restore(sess, 'data/core_network_spectrum_pooling_250_0.00001.ckpt')
-        # saver.restore(sess, 'data/core_network_average_pooling_500.ckpt')
-        for i in range(n_samples):
-            # reconstructed_motion = sess.run(average_unpooled_decoder, feed_dict={input: normalized_data[i: i+1]})
-            motion_decoder = sess.run(decoder_op, feed_dict={input: normalized_data[i:i+1]})
-            # reconstructed_motion = sess.run(unpooled_decoder, feed_dict={pool_input: normalized_data[i:i+1]})
-            # mag = np.sqrt(np.real(spectrum)**2 + np.imag(spectrum)**2)
-            # decodered_motion = sess.run(decoder_op, feed_dict={input: normalized_data[i: i + 1]})
-            reconstructed_motion = sess.run(unpooled_decoder, feed_dict={pool_input: motion_decoder})
-            # for j in range(n_dims):
-            #     fig = plt.figure()
-            #     plt.plot(range(n_frames), reconstructed_motion[i, j, :], label='after pooling')
-            #     plt.plot(range(n_frames), normalized_data[i, j, :], label='before pooling')
-            #     # plt.plot(range(512), mag[0, j, :], label='spectrum')
-            #     plt.title(str(j))
-            #     plt.legend()
-            #     plt.show()
-
-            reconstructed_motion = (motion_decoder * preprocess['Xstd']) + preprocess['Xmean']
-            reconstructed_clips.append(reconstructed_motion[0])
-        # reconstructed_clips = np.asarray(reconstructed_clips)
-        reconstructed_clips = np.swapaxes(reconstructed_clips, 1, 2)
-        print(reconstructed_clips.shape)
-        combined_motion = combine_motion_clips(reconstructed_clips, frame_len-1, 120)
-        combined_motion = np.swapaxes(combined_motion, 0, 1)[np.newaxis, :, :]
-        # fig = plt.figure()
-        # plt.plot(range(240), test_data[2, 24, :], label='before pooling')
-        # # plt.plot(range(240), normalized_data[2, 24, :], label='normalized before pooling')
-        # plt.plot(range(240), reconstructed_clips[2, 24, :], label='after pooling')
-        # plt.legend()
-        # plt.show()
-
-        export_point_cloud_data(combined_motion, os.path.join(r'E:\tmp', filename[:-4]+'.panim'))
-
-
-
-    # test_data = np.swapaxes(test_data, 1, 2)
-    #
-    # combined_motion = combine_motion_clips(test_data, frame_len-1, 120)
-    # print(combined_motion.shape)
-    # reconstructed_motion = np.swapaxes(combined_motion, 0, 1)[np.newaxis, :, :]
-    # # reconstruct_motion_from_processed_data(reconstructed_motion, skeleton, r'E:\tmp\locomotion_walk_001_000_combined.bvh')
-    # export_point_cloud_data(reconstructed_motion, r'E:\tmp\locomotion_walk_001_000_combined.panim')
-
-
-def demo_motion_encoder_single_file():
-    preprocess = np.load(r'E:\workspace\tensorflow_results\data\preprocessed_core_channel_first.npz')
-    # test_file = r'C:\Users\hadu01\Downloads\fix-screws-by-hand\fix-screws-by-hand_007-snapPoseSkeleton.bvh'
-    # test_file = r'E:\workspace\repo\data\1 - MoCap\2.1 - GameSkeleton retargeting\ACCAD\Female1_bvh\Female1_A08_CrouchToLie.bvh'
-    test_file = r'E:\workspace\repo\data\1 - MoCap\2.1 - GameSkeleton retargeting\edin\edin_locomotion\locomotion_jog_000_000.bvh'
-    # test_file = r'C:\repo\data\1 - MoCap\2.1 - GameSkeleton retargeting\edin\edin_locomotion\locomotion_walk_001_000.bvh'
-    # test_file = r'C:\repo\data\1 - MoCap\4 - Alignment\elementary_action_walk\turnRightLeftStance_game_engine_skeleton_smoothed_grounded\walk_turnwalk_013_4_turnRight_204_347.bvh'
-    # test_file = r'E:\tmp\style_transfer_motion.panim'
-    filename = os.path.split(test_file)[-1]
-    # test_data = process_file(test_file, sliding_window=False, with_game_engine=False, body_plane_indice=[2, 17, 13])
-    test_data = process_file(test_file, sliding_window=False)
-    # test_data = process_panim_data(test_file, sliding_window=False)
-    print(test_data.shape)
-
-    test_data = np.swapaxes(test_data, 0, 1)[np.newaxis, :, :]
-
-    if test_data.shape[2] % 2 != 0:
-        test_data = test_data[:, :, :-1]
-
-    n_samples, n_dims, n_frames = test_data.shape
-    normalized_data = (test_data - preprocess['Xmean']) / preprocess['Xstd']
-    input = tf.placeholder(tf.float32, shape=[1, n_dims, n_frames])
-    encoder_op = motion_encoder_channel_first(input, name='encoder', hidden_units=256, pooling='average')
-    decoder_op = motion_decoder_channel_first(encoder_op, n_dims, name='decoder', unpool='average')
-    # encoder_op = motion_encoder_channel_first(input, name='encoder', hidden_units=256, pooling='spectrum')
-    # decoder_op = motion_decoder_channel_first(encoder_op, n_dims, name='decoder', unpool='spectrum')
-    # print(encoder_op.shape)
-    # print(decoder_op.shape)
-    saver = tf.train.Saver()
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    with tf.Session(config=config) as sess:
-        sess.run(tf.global_variables_initializer())
-        # saver.restore(sess, 'data/core_network_64_hidden_0.0001_250.ckpt')
-        # saver.restore(sess, 'data/core_network_spectrum_pooling_250_0.00001.ckpt')
-        saver.restore(sess, r'E:\workspace\tensorflow_results\data\core_network_average_pooling_300.ckpt')
-        encoded_motion = sess.run(encoder_op, feed_dict={input: normalized_data})
-        print('encoded motion shape: ', encoded_motion.shape)
-        reconstructed_motion = sess.run(decoder_op, feed_dict={input: normalized_data})
-        # denoised_motion = sess.run(decoder_op, feed_dict={input: reconstructed_motion})
-        reconstructed_motion = (reconstructed_motion * preprocess['Xstd']) + preprocess['Xmean']
-        # export_point_cloud_data(reconstructed_motion, os.path.join(r'E:\tmp', 'denoised_motion.panim'))
-        # denoised_motion = (denoised_motion * preprocess['Xstd']) + preprocess['Xmean']
-
-        print(reconstructed_motion.shape)
-        export_point_cloud_data(np.swapaxes(reconstructed_motion[0], 0, 1), os.path.join(r'E:\workspace\tmp', filename[:-4]+'_average_pooling.panim'))
-        # export_point_cloud_data(denoised_motion, os.path.join(r'E:\tmp', 'denoised_motion.panim'))
-
-
-def demo_motion_autoencoder_channel_first():
-    # data = np.load(r'../theano/data/training_data/processed_edin_data.npz')['clips']
-    # data = np.swapaxes(data, 1, 2)
-    # n_samples, n_dims, n_frames = data.shape
-    preprocess = np.load('preprocessed_core_channel_first.npz')
-    # normalized_data = (data - preprocess['Xmean']) / preprocess['Xstd']
-    test_folder = r'C:\repo\data\1 - MoCap\2.1 - GameSkeleton retargeting\cmu\01'
-    save_folder = r'E:\tmp\01'
-    for test_file in glob.glob(os.path.join(test_folder, '*.bvh')):
-        test_data = process_file(test_file, sliding_window=False)
-        test_filename = os.path.split(test_file)[-1]
-        n_frames, n_dims = test_data.shape
-        # test_file = r'C:\repo\data\1 - MoCap\2.1 - GameSkeleton retargeting\edin\edin_locomotion\locomotion_walk_001_000.bvh'
-        # test_file = r'E:\tmp\style_transfer_result.panim'
-        #     bvhreader = BVHReader(test_file)
-        #     skeleton = SkeletonBuilder().load_from_bvh(bvhreader, animated_joints=GAME_ENGINE_ANIMATED_JOINTS)
-        # test_data = process_panim_data(test_file, sliding_window=False)
-        test_data = np.swapaxes(test_data, 0, 1)[np.newaxis, :, :]
+        test_data = process_file(bvhfile, sliding_window=True, body_plane_indice=[2, 17, 13])
+        assert test_data is not None
+        test_data = np.swapaxes(test_data, 1, 2)
+        print('input clips: ', test_data.shape)
+        if test_data.shape[2] % 2 != 0:
+            test_data = test_data[:, :, :-1]
+        n_samples, n_dims, n_frames = test_data.shape
         normalized_data = (test_data - preprocess['Xmean']) / preprocess['Xstd']
-        input = tf.placeholder(tf.float32, shape=[None, n_dims, n_frames])
-        encoder_op = motion_encoder_channel_first(input, name='encoder', hidden_units=256, pooling='average')
-        decoder_op = motion_decoder_channel_first(encoder_op, n_dims, name='decoder')
+        input = tf.placeholder(tf.float32, shape=[1, n_dims, n_frames])
+        encoder_op = motion_encoder_channel_first(input, name='encoder', hidden_units=256, pooling='spectrum',
+                                                kernel_size=25)
+        decoder_op = motion_decoder_channel_first(encoder_op, n_dims, name='decoder', unpool='spectrum', kernel_size=25)
+
+        pool_input = tf.placeholder(dtype=tf.float32, shape=[1, n_dims, n_frames])
+        pooled_decoder = spectrum_pooling_1d(pool_input, pool_size=2, N=512)
+        # print(decoder_op.shape)
+        unpooled_decoder = spectrum_unpooling_1d(pooled_decoder, pool_size=2, N=512)
+
+        # average_pooled_decoder = tf.layers.average_pooling1d(input, 2, strides=2, data_format='channels_first')
+        # average_unpooled_decoder = average_unpooling_1d(average_pooled_decoder, 2, data_format='channels_first')
         saver = tf.train.Saver()
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
+        reconstructed_clips = []
+        out_dir = r'../data/results'
         with tf.Session(config=config) as sess:
             sess.run(tf.global_variables_initializer())
-            # saver.restore(sess, 'data/core_network_max_pooling.ckpt')
-            saver.restore(sess, 'data/core_network_average_pooling_500.ckpt')
+            saver.restore(sess, 'data/core_network_spectrum_pooling_250_0.00001.ckpt')
+            # saver.restore(sess, 'data/core_network_average_pooling_500.ckpt')
+            for i in range(n_samples):
+                # reconstructed_motion = sess.run(average_unpooled_decoder, feed_dict={input: normalized_data[i: i+1]})
+                motion_decoder = sess.run(decoder_op, feed_dict={input: normalized_data[i:i+1]})
+                reconstructed_motion = sess.run(unpooled_decoder, feed_dict={pool_input: motion_decoder})
+                reconstructed_motion = (motion_decoder * preprocess['Xstd']) + preprocess['Xmean']
+                reconstructed_clips.append(reconstructed_motion[0])
+            reconstructed_clips = np.swapaxes(reconstructed_clips, 1, 2)
+            print(reconstructed_clips.shape)
+            combined_motion = combine_motion_clips(reconstructed_clips, frame_len-1, 120)
+            combined_motion = np.swapaxes(combined_motion, 0, 1)[np.newaxis, :, :]
+            export_point_cloud_data_without_foot_contact(combined_motion[:, :-4], os.path.join(out_dir, filename[:-4]+'.panim'))
 
 
-            # reconstructed_motion = sess.run(decoder_op, feed_dict={input: normalized_data[13:14]})
+
+def demo_motion_encoder_single_file(bvhfile, body_plane_indice=[2, 17, 13]):
+    """encode a bvhfile using trained model. The skeleton should be the same as the model
+    
+    Arguments:
+        bvhfile {str} -- path to bvh file
+    """
+    meta_data = r'../data/models/preprocessed_core_channel_first.npz'
+    model_file = r'../data/models/core_network_average_pooling_300.ckpt'
+    if not os.path.exists(meta_data) or not os.path.exists(model_file):
+        print("run load_data to create data folder!")
+        return
+    else:
+        preprocess = np.load(meta_data)
+
+        filename = os.path.split(bvhfile)[-1]
+        test_data = process_file(bvhfile, sliding_window=False, body_plane_indice=body_plane_indice)
+
+        test_data = np.swapaxes(test_data, 0, 1)[np.newaxis, :, :]
+
+        if test_data.shape[2] % 2 != 0:
+            test_data = test_data[:, :, :-1]
+
+        n_samples, n_dims, n_frames = test_data.shape
+        normalized_data = (test_data - preprocess['Xmean']) / preprocess['Xstd']
+        input = tf.placeholder(tf.float32, shape=[1, n_dims, n_frames])
+        encoder_op = motion_encoder_channel_first(input, name='encoder', hidden_units=256, pooling='average')
+        decoder_op = motion_decoder_channel_first(encoder_op, n_dims, name='decoder', unpool='average')
+
+        saver = tf.train.Saver()
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+        out_dir = r'../data/results'
+        if not os.path.exists(out_dir):
+            os.makedirs(out_dir)
+        with tf.Session(config=config) as sess:
+            sess.run(tf.global_variables_initializer())
+            saver.restore(sess, model_file)
+            encoded_motion = sess.run(encoder_op, feed_dict={input: normalized_data})
+            print('encoded motion shape: ', encoded_motion.shape)
             reconstructed_motion = sess.run(decoder_op, feed_dict={input: normalized_data})
+            # denoised_motion = sess.run(decoder_op, feed_dict={input: reconstructed_motion})
             reconstructed_motion = (reconstructed_motion * preprocess['Xstd']) + preprocess['Xmean']
-            # reconstructed_motion = np.swapaxes(reconstructed_motion, 1, 2)
-
-            export_point_cloud_data(reconstructed_motion, os.path.join(save_folder, test_filename[:-4]+'.panim'))
-        save_motion_data_to_bvh(reconstructed_motion, GAME_ENGINE_SKELETON, test_file,
-                                os.path.join(save_folder, test_filename))
-        export_point_cloud_data(test_data, r'E:\tmp\origin.panim')
-        export_point_cloud_data(reconstructed_motion, r'E:\tmp\denoised.panim')
+            print(reconstructed_motion.shape)
+            export_point_cloud_data_without_foot_contact(np.swapaxes(reconstructed_motion[0], 0, 1)[:, :-4], os.path.join(out_dir, filename[:-4]+'_average_pooling.panim'))
 
 
-def demo_autoencoder_strides():
-    from models import motion_encoder_stride, motion_decoder_stride, motion_decoder_stride2d
+def demo_autoencoder_strides(bvhfile, body_plane_indice=[2, 17, 13]):
+    """encode a bvhfile using trained model with strides. The skeleton should be the same as the model
+    
+    Arguments:
+        bvhfile {str} -- path to bvh file  
+    """
+    meta_data = r'../data/models/preprocessed_core_channel_first.npz'
+    model_file = r'../data/models/core_network_average_pooling_300.ckpt'
     preprocess = np.load('preprocessed_core_channel_first.npz')
-    test_file = r'C:\repo\data\1 - MoCap\2.1 - GameSkeleton retargeting\edin\edin_locomotion\locomotion_walk_001_000.bvh'
-    test_data = process_file(test_file, sliding_window=False)
+    test_data = process_file(bvhfile, sliding_window=False, body_plane_indice=body_plane_indice)
     n_frames, n_dims = test_data.shape
     test_data = np.swapaxes(test_data, 0, 1)[np.newaxis, :, :]
     normalized_data = (test_data - preprocess['Xmean']) / preprocess['Xstd']
     input = tf.placeholder(tf.float32, [1, n_dims, n_frames])
     encoder_op = motion_encoder_stride(input, name='encoder')
-    # decoder_op = motion_decoder_stride(encoder_op, n_dims, name='decoder')
     decoder_op = motion_decoder_stride2d(encoder_op, n_dims, name='decoder')
     encoder_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='encoder')
     decoder_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='decoder')
@@ -424,12 +356,5 @@ def demo_motion_autoencoder_channel_first_without_pooling():
 
 
 if __name__ == "__main__":
-    # demo_motion_autoencoder()
-    # demo_motion_autoencoder_expmap()
-    # demo_motion_autoencoder_channel_first()
-    # demo_motion_autoencoder_channel_first_without_pooling()
-    # demo_motion_autoencoder_channel_first_combined()
-    # demo_autoencoder_strides()
-    # demo_autoencoder_strides_multilayers()
-    demo_motion_encoder_single_file()
-    # demo_motion_encoder_spectrum_pooling_single_file()
+    test_file = r'D:\workspace\repo\data\1 - MoCap\2.1 - GameSkeleton retargeting\edin\edin_locomotion\locomotion_jog_000_000.bvh'
+    demo_motion_encoder_single_file(test_file)
