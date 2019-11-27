@@ -11,7 +11,7 @@ class Layer(object):
             for param in self.params:
                 # if param.name in sess.run(tf.report_uninitialized_variables()):
                 #     sess.run()
-                if not tf.is_variable_initialized(param) is None:
+                if not tf.compat.v1.is_variable_initialized(param) is None:
                     sess.run(param.initializer)
                 database[prefix + param.name] = np.array(Layer.get_param_value(param, sess))
         return database

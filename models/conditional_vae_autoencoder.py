@@ -32,12 +32,12 @@ class ConditionalMotionVaeEncoder(object):
         if sess is not None:
             self.sess = sess
         else:
-            self.sess = tf.InteractiveSession()
+            self.sess = tf.compat.v1.InteractiveSession()
 
     @staticmethod
     def fully_connected_layer(input, hidden_num, name='fully_connected_layer', activation=None):
-        with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-            layer_output = tf.layers.dense(input, hidden_num)
+        with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
+            layer_output = tf.compat.v1.layers.dense(input, hidden_num)
             if activation is None:
                 # layer_output = tf.contrib.layers.batch_norm(layer_output,
                 #                                             center=True,
@@ -55,11 +55,11 @@ class ConditionalMotionVaeEncoder(object):
 
     @staticmethod
     def conv_1d_encode_layer(input, name, hidden_units, pooling, kernel_size, activation,
-                             dropout_rate=0.25, reuse=tf.AUTO_REUSE):
-        with tf.variable_scope(name, reuse=reuse):
-            dropout_res = tf.layers.dropout(input, rate=dropout_rate)
+                             dropout_rate=0.25, reuse=tf.compat.v1.AUTO_REUSE):
+        with tf.compat.v1.variable_scope(name, reuse=reuse):
+            dropout_res = tf.compat.v1.layers.dropout(input, rate=dropout_rate)
         if activation is None:
-            conv_res = tf.layers.conv1d(dropout_res, hidden_units, kernel_size, padding='same', activation=tf.nn.relu,
+            conv_res = tf.compat.v1.layers.conv1d(dropout_res, hidden_units, kernel_size, padding='same', activation=tf.nn.relu,
                                         data_format='channels_first',
                                         kernel_regularizer=regularizer)
             # conv_res = tf.contrib.layers.batch_norm(conv_res,
@@ -68,7 +68,7 @@ class ConditionalMotionVaeEncoder(object):
             #                                         is_training=True,
             #                                         scope='bn')
         else:
-            conv_res = tf.layers.conv1d(dropout_res, hidden_units, kernel_size, padding='same', activation=None,
+            conv_res = tf.compat.v1.layers.conv1d(dropout_res, hidden_units, kernel_size, padding='same', activation=None,
                                         data_format='channels_first',
                                         kernel_regularizer=regularizer)
             conv_res = tf.contrib.layers.batch_norm(conv_res,
@@ -80,10 +80,10 @@ class ConditionalMotionVaeEncoder(object):
         if pooling is None:
             return conv_res
         elif pooling == 'average':
-            pool_layer = tf.layers.average_pooling1d(conv_res, 2, strides=2, data_format='channels_first')
+            pool_layer = tf.compat.v1.layers.average_pooling1d(conv_res, 2, strides=2, data_format='channels_first')
             return pool_layer
         elif pooling == 'max':
-            pool_layer = tf.layers.max_pooling1d(conv_res, 2, strides=2, data_format='channels_first')
+            pool_layer = tf.compat.v1.layers.max_pooling1d(conv_res, 2, strides=2, data_format='channels_first')
             return pool_layer
         elif pooling == 'spectrum':
             pool_layer = spectrum_pooling_1d(conv_res, 2, N=512, data_format='channels_first')
@@ -93,8 +93,8 @@ class ConditionalMotionVaeEncoder(object):
 
     @staticmethod
     def conv_1d_decode_layer(input, name, n_features, unpooling, kernel_size, activation, dropout_rate=0.25,
-                             reuse=tf.AUTO_REUSE):
-        with tf.variable_scope(name, reuse=reuse):
+                             reuse=tf.compat.v1.AUTO_REUSE):
+        with tf.compat.v1.variable_scope(name, reuse=reuse):
             ## unpooling
             if unpooling == 'average':
                 layer1 = average_unpooling_1d(input, pool_size=2, data_format='channels_first')
@@ -102,8 +102,8 @@ class ConditionalMotionVaeEncoder(object):
                 layer1 = spectrum_unpooling_1d(input, pool_size=2, N=512, data_format='channels_first')
             else:
                 layer1 = input
-            layer2 = tf.layers.dropout(layer1, rate=dropout_rate)
-            layer3 = tf.layers.conv1d(layer2, n_features, kernel_size, padding='same', activation=activation,
+            layer2 = tf.compat.v1.layers.dropout(layer1, rate=dropout_rate)
+            layer3 = tf.compat.v1.layers.conv1d(layer2, n_features, kernel_size, padding='same', activation=activation,
                                       data_format='channels_first', kernel_regularizer=regularizer)
             return layer3
 
@@ -241,10 +241,10 @@ class ConditionalMotionVaeEncoder(object):
                                                                      activation=None)
         return mean_encoder_6, log_sigma_encoder_6
 
-    def create_conv_model(self, reuse=tf.AUTO_REUSE):
-        with tf.variable_scope(self.name, reuse):
-            self.input = tf.placeholder(dtype=tf.float32, shape=(None, self.n_dims, self.n_frames))
-            self.latent_input = tf.placeholder(dtype=tf.float32, shape=(None, self.npc))
+    def create_conv_model(self, reuse=tf.compat.v1.AUTO_REUSE):
+        with tf.compat.v1.variable_scope(self.name, reuse):
+            self.input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, self.n_dims, self.n_frames))
+            self.latent_input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, self.npc))
             conv_output = self.conv_encode(self.input)
             reshape_conv_output = tf.reshape(conv_output, (-1, conv_output.shape[1] * conv_output.shape[2]))
             z_mu, z_log_sigma = self.encode(reshape_conv_output)
@@ -252,12 +252,12 @@ class ConditionalMotionVaeEncoder(object):
 
             decoder = self.decode(self.z_op)
             reshaped_decoder = tf.reshape(decoder, (-1, conv_output.shape[1], conv_output.shape[2]))
-            recon_loss = tf.reduce_mean(tf.pow(reshaped_decoder - conv_output, 2))
+            recon_loss = tf.reduce_mean(input_tensor=tf.pow(reshaped_decoder - conv_output, 2))
             
             
 
     def sample(self, mu, log_sigma):
-        eps = tf.random_normal(tf.shape(mu), dtype=tf.float32, mean=0., stddev=1.0,
+        eps = tf.random.normal(tf.shape(input=mu), dtype=tf.float32, mean=0., stddev=1.0,
                                name='epsilon')
         return mu + tf.exp(log_sigma / 2) * eps
 
@@ -288,11 +288,11 @@ class ConditionalMotionVaeEncoder(object):
                                                            activation=self.decoder_activation)
         return decoder_1
 
-    def create_model(self, reuse=tf.AUTO_REUSE):
-        with tf.variable_scope(self.name, reuse):
-            self.input = tf.placeholder(dtype=tf.float32, shape=(None, self.n_dims, self.n_frames))
-            self.latent_input = tf.placeholder(dtype=tf.float32, shape=(None, self.npc))
-            self.conditional_input = tf.placeholder(dtype=tf.float32, shape=(None, self.n_dims, self.n_frames))
+    def create_model(self, reuse=tf.compat.v1.AUTO_REUSE):
+        with tf.compat.v1.variable_scope(self.name, reuse):
+            self.input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, self.n_dims, self.n_frames))
+            self.latent_input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, self.npc))
+            self.conditional_input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, self.n_dims, self.n_frames))
             ### initialize encoder
             reshaped_input = tf.reshape(self.input, (-1, self.n_dims * self.n_frames))
             z_mu, z_log_sigma = self.encode(reshaped_input)
@@ -306,22 +306,22 @@ class ConditionalMotionVaeEncoder(object):
             reshaped_decoder = tf.reshape(decoder_1, (-1, self.n_dims, self.n_frames))
             # mean_reshaped_decoder = tf.reduce_mean(reshaped_decoder, axis=0)
             # variational_error = 10 * -tf.reduce_mean(tf.pow(reshaped_decoder - mean_reshaped_decoder, 2))
-            z_op_mean = tf.reduce_mean(self.z_op, axis=0)
-            variational_error = 10 * tf.exp(-tf.reduce_mean(tf.pow(self.z_op - z_op_mean, 2)))
+            z_op_mean = tf.reduce_mean(input_tensor=self.z_op, axis=0)
+            variational_error = 10 * tf.exp(-tf.reduce_mean(input_tensor=tf.pow(self.z_op - z_op_mean, 2)))
             
             ### loss is the sum or reconstruction error and KL distance between normal distribution and mapped distribution
             # reconstruction_loss = tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(logits=decoder_1, labels=reshaped_input), 1)
-            reconstruction_loss = tf.reduce_sum(tf.pow(reshaped_decoder - self.input, 2))
+            reconstruction_loss = tf.reduce_sum(input_tensor=tf.pow(reshaped_decoder - self.input, 2))
             # kl_divergence_loss = tf.reduce_mean(-0.5 * tf.reduce_sum(1 + z_log_sigma - tf.square(mean_encoder_6) - tf.exp(z_log_sigma), 1))
             # reconstruction_loss = tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(logits=decoder_1, labels=self.input), 1)
             
             # style_loss = 1000 * tf.reduce_sum(tf.pow(tf.reduce_mean(gram_matrix(self.conditional_input), axis=0) - tf.reduce_mean(gram_matrix(reshaped_decoder), axis=0), 2))
-            style_loss = 500 * tf.reduce_sum(tf.norm(tf.reduce_mean(gram_matrix(self.conditional_input), axis=0) - tf.reduce_mean(gram_matrix(reshaped_decoder), axis=0)))
-            kl_divergence_loss = -0.5 * tf.reduce_sum(1 + z_log_sigma - tf.square(z_mu) - tf.exp(z_log_sigma), 1)
+            style_loss = 500 * tf.reduce_sum(input_tensor=tf.norm(tensor=tf.reduce_mean(input_tensor=gram_matrix(self.conditional_input), axis=0) - tf.reduce_mean(input_tensor=gram_matrix(reshaped_decoder), axis=0)))
+            kl_divergence_loss = -0.5 * tf.reduce_sum(input_tensor=1 + z_log_sigma - tf.square(z_mu) - tf.exp(z_log_sigma), axis=1)
             self.mean_op = z_mu
             self.variance_op = z_log_sigma
             # self.cost = tf.reduce_mean(reconstruction_loss + style_loss)
-            self.cost = tf.reduce_mean(reconstruction_loss + kl_divergence_loss + style_loss + variational_error)
+            self.cost = tf.reduce_mean(input_tensor=reconstruction_loss + kl_divergence_loss + style_loss + variational_error)
             # self.cost = tf.reduce_mean(reconstruction_loss)
             # self.cost = tf.reduce_mean(reconstruction_loss + 0.01 * kl_divergence_loss + variational_error)
             self.reconstruction_loss_op = reconstruction_loss
@@ -330,9 +330,9 @@ class ConditionalMotionVaeEncoder(object):
             self.variational_loss = variational_error
             self.decoder_op = tf.reshape(self.decode(self.latent_input), (-1, self.n_dims, self.n_frames))
 
-        self.model_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.name)
+        self.model_params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.name)
 
-        self.saver = tf.train.Saver(self.model_params)
+        self.saver = tf.compat.v1.train.Saver(self.model_params)
     
     def evaluate_loss(self, input_data, conditional_data):
         reconstruction_error, kl_error, style_error, variational_error = self.sess.run([self.reconstruction_loss_op, 
@@ -358,8 +358,8 @@ class ConditionalMotionVaeEncoder(object):
 
     def pre_train(self, training_data):
         n_samples, input_dims = training_data.shape
-        with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
-            layer1_input = tf.placeholder(dtype=tf.float32, shape=(None, input_dims))
+        with tf.compat.v1.variable_scope(self.name, reuse=tf.compat.v1.AUTO_REUSE):
+            layer1_input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, input_dims))
             encoder_layer1_output = ConditionalMotionVaeEncoder.fully_connected_layer(layer1_input,
                                                                                       hidden_num=1024,
                                                                                       name='encoder_1',
@@ -368,10 +368,10 @@ class ConditionalMotionVaeEncoder(object):
                                                                               hidden_num=self.input_dims,
                                                                               name='decoder_1',
                                                                               activation=self.decoder_activation)
-            layer1_loss = tf.reduce_mean(tf.pow(layer1_input - layer1_output, 2))
+            layer1_loss = tf.reduce_mean(input_tensor=tf.pow(layer1_input - layer1_output, 2))
             layer1_trainer = self.optimizer.minimize(layer1_loss)
             
-            layer2_input = tf.placeholder(dtype=tf.float32, shape=(None, 1024))
+            layer2_input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, 1024))
             encoder_layer2_output = ConditionalMotionVaeEncoder.fully_connected_layer(layer2_input,
                                                                                       hidden_num=512,
                                                                                       name='encoder_2',
@@ -380,10 +380,10 @@ class ConditionalMotionVaeEncoder(object):
                                                                               hidden_num=1024,
                                                                               name='decoder_2',
                                                                               activation=self.decoder_activation)
-            layer2_loss = tf.reduce_mean(tf.pow(layer2_output - layer2_input, 2))
+            layer2_loss = tf.reduce_mean(input_tensor=tf.pow(layer2_output - layer2_input, 2))
             layer2_trainer = self.optimizer.minimize(layer2_loss)
 
-            layer3_input = tf.placeholder(dtype=tf.float32, shape=(None, 512))
+            layer3_input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, 512))
             encoder_layer3_output = ConditionalMotionVaeEncoder.fully_connected_layer(layer3_input,
                                                                                       hidden_num=256,
                                                                                       name='encoder_3',
@@ -392,10 +392,10 @@ class ConditionalMotionVaeEncoder(object):
                                                                               hidden_num=512,
                                                                               name='decoder_3',
                                                                               activation=self.decoder_activation)
-            layer3_loss = tf.reduce_mean(tf.pow(layer3_output - layer3_input, 2))
+            layer3_loss = tf.reduce_mean(input_tensor=tf.pow(layer3_output - layer3_input, 2))
             layer3_trainer = self.optimizer.minimize(layer3_loss)
 
-            layer4_input = tf.placeholder(dtype=tf.float32, shape=(None, 256))
+            layer4_input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, 256))
             encoder_layer4_output = ConditionalMotionVaeEncoder.fully_connected_layer(layer4_input,
                                                                                       hidden_num=128,
                                                                                       name='encoder_4',
@@ -404,10 +404,10 @@ class ConditionalMotionVaeEncoder(object):
                                                                               hidden_num=256,
                                                                               name='decoder_4',
                                                                               activation=self.decoder_activation)
-            layer4_loss = tf.reduce_mean(tf.pow(layer4_output - layer4_input, 2))
+            layer4_loss = tf.reduce_mean(input_tensor=tf.pow(layer4_output - layer4_input, 2))
             layer4_trainer = self.optimizer.minimize(layer4_loss)
 
-            layer5_input = tf.placeholder(dtype=tf.float32, shape=(None, 128))
+            layer5_input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, 128))
             encoder_layer5_output = ConditionalMotionVaeEncoder.fully_connected_layer(layer5_input,
                                                                                       hidden_num=64,
                                                                                       name='encoder_5',
@@ -416,7 +416,7 @@ class ConditionalMotionVaeEncoder(object):
                                                                               hidden_num=128,
                                                                               name='decoder_5',
                                                                               activation=self.decoder_activation)
-            layer5_loss = tf.reduce_mean(tf.pow(layer5_output - layer5_input, 2))
+            layer5_loss = tf.reduce_mean(input_tensor=tf.pow(layer5_output - layer5_input, 2))
             layer5_trainer = self.optimizer.minimize(layer5_loss)
 
 
@@ -431,9 +431,9 @@ class ConditionalMotionVaeEncoder(object):
         '''
         print(training_data.shape)
         print(conditional_data.shape)
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+        self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
         train_op = self.optimizer.minimize(self.cost)
-        self.sess.run(tf.global_variables_initializer())
+        self.sess.run(tf.compat.v1.global_variables_initializer())
         n_samples = training_data.shape[0]
         last_mean = 0
 

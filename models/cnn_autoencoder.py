@@ -2,14 +2,15 @@
 import tensorflow as tf
 import numpy as np
 from datetime import datetime
+from pathlib import Path
 import sys
-sys.path.append(r'../')
+sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/..')
 rng = np.random.RandomState(23456)
 # regularizer = tf.contrib.layers.l2_regularizer(scale=0.01)
 regularizer = None
 from nn.spectrum_pooling import spectrum_pooling_1d
 from nn.unpooling import average_unpooling_1d, spectrum_unpooling_1d
-from models.utils import gram_matrix
+from utilities.utils import gram_matrix
 
 
 class CNNAutoEncoder(object):
@@ -26,15 +27,15 @@ class CNNAutoEncoder(object):
         self.hidden_units = hidden_units
         self.n_epoches = n_epoches
         self.batchsize = batchsize
-        self.sess = tf.InteractiveSession()
+        self.sess = tf.compat.v1.InteractiveSession()
 
     @staticmethod
     def conv_1d_encode_layer(input, name, hidden_units, pooling, kernel_size, activation,
-                             dropout_rate=0.25, reuse=tf.AUTO_REUSE):
-        with tf.variable_scope(name, reuse=reuse):
-            dropout_res = tf.layers.dropout(input, rate=dropout_rate)
+                             dropout_rate=0.25, reuse=tf.compat.v1.AUTO_REUSE):
+        with tf.compat.v1.variable_scope(name, reuse=reuse):
+            dropout_res = tf.compat.v1.layers.dropout(input, rate=dropout_rate)
             if activation is None:
-                conv_res = tf.layers.conv1d(dropout_res, hidden_units, kernel_size, padding='same', 
+                conv_res = tf.compat.v1.layers.conv1d(dropout_res, hidden_units, kernel_size, padding='same', 
                                             activation=activation,
                                             data_format='channels_first',
                                             kernel_regularizer=regularizer,
@@ -45,7 +46,7 @@ class CNNAutoEncoder(object):
                 #                                         is_training=True,
                 #                                         scope='bn')
             else:
-                conv_res = tf.layers.conv1d(dropout_res, hidden_units, kernel_size, padding='same', activation=None,
+                conv_res = tf.compat.v1.layers.conv1d(dropout_res, hidden_units, kernel_size, padding='same', activation=None,
                                             data_format='channels_first',
                                             kernel_regularizer=regularizer,
                                             reuse=reuse)
@@ -58,10 +59,10 @@ class CNNAutoEncoder(object):
             if pooling is None:
                 return conv_res
             elif pooling == 'average':
-                pool_layer = tf.layers.average_pooling1d(conv_res, 2, strides=2, data_format='channels_first')
+                pool_layer = tf.compat.v1.layers.average_pooling1d(conv_res, 2, strides=2, data_format='channels_first')
                 return pool_layer
             elif pooling == 'max':
-                pool_layer = tf.layers.max_pooling1d(conv_res, 2, strides=2, data_format='channels_first')
+                pool_layer = tf.compat.v1.layers.max_pooling1d(conv_res, 2, strides=2, data_format='channels_first')
                 return pool_layer
             elif pooling == 'spectrum':
                 pool_layer = spectrum_pooling_1d(conv_res, 2, N=512, data_format='channels_first')
@@ -71,8 +72,8 @@ class CNNAutoEncoder(object):
 
     @staticmethod
     def conv_1d_decode_layer(input, name, n_features, unpooling, kernel_size, activation, dropout_rate=0.25,
-                             reuse=tf.AUTO_REUSE):
-        with tf.variable_scope(name, reuse=reuse):
+                             reuse=tf.compat.v1.AUTO_REUSE):
+        with tf.compat.v1.variable_scope(name, reuse=reuse):
             ## unpooling
             if unpooling == 'average':
                 layer1 = average_unpooling_1d(input, pool_size=2, data_format='channels_first')
@@ -80,8 +81,8 @@ class CNNAutoEncoder(object):
                 layer1 = spectrum_unpooling_1d(input, pool_size=2, N=512, data_format='channels_first')
             else:
                 layer1 = input
-            layer2 = tf.layers.dropout(layer1, rate=dropout_rate)
-            layer3 = tf.layers.conv1d(layer2, n_features, kernel_size, padding='same', activation=activation,
+            layer2 = tf.compat.v1.layers.dropout(layer1, rate=dropout_rate)
+            layer3 = tf.compat.v1.layers.conv1d(layer2, n_features, kernel_size, padding='same', activation=activation,
                                       data_format='channels_first', kernel_regularizer=regularizer, reuse=reuse)
             return layer3
     
@@ -101,24 +102,24 @@ class CNNAutoEncoder(object):
                                                             activation=self.decode_activation)
         return decoder_layer
         
-    def create_model(self, reuse=tf.AUTO_REUSE):
-        with tf.variable_scope(self.name, reuse=reuse):
-            self.input = tf.placeholder(dtype=tf.float32, shape=(None, self.n_dims, self.n_frames))
+    def create_model(self, reuse=tf.compat.v1.AUTO_REUSE):
+        with tf.compat.v1.variable_scope(self.name, reuse=reuse):
+            self.input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, self.n_dims, self.n_frames))
             encoder_layer = self.encode(self.input)
             decoder_layer = self.decode(encoder_layer)
-            self.latent_input = tf.placeholder(dtype=tf.float32, shape=(None, self.hidden_units, self.n_frames//2))
+            self.latent_input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, self.hidden_units, self.n_frames//2))
 
-            self.loss = tf.reduce_mean(tf.pow(self.input - decoder_layer, 2))
+            self.loss = tf.reduce_mean(input_tensor=tf.pow(self.input - decoder_layer, 2))
             self.decoder_op = self.decode(self.latent_input)
             self.encoder_op = encoder_layer
-            self.model_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.name)
-            self.saver = tf.train.Saver(self.model_params)
-    
+            self.model_params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.name)
+            self.saver = tf.compat.v1.train.Saver(self.model_params)
+
     def train(self, training_data, learning_rate=0.001):
 
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+        self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
         train_op = self.optimizer.minimize(self.loss)
-        self.sess.run(tf.global_variables_initializer())
+        self.sess.run(tf.compat.v1.global_variables_initializer())
         n_samples, n_features, n_frames = training_data.shape
         last_mean = 0
         for epoch in range(self.n_epoches):
@@ -160,26 +161,26 @@ class CNNAutoEncoder(object):
         return self.sess.run(self.decoder_op, feed_dict={self.latent_input: input_data})
 
     def transfer_style(self, content_motion, style_motion):
-        with tf.variable_scope(self.name, reuse=tf.AUTO_REUSE):
+        with tf.compat.v1.variable_scope(self.name, reuse=tf.compat.v1.AUTO_REUSE):
             epoches = 250
             encodered_content_motion = self.encode_data(content_motion)
-            h_optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
-            content_input = tf.placeholder(dtype=tf.float32, shape=(1, self.n_dims, self.n_frames))
-            style_input = tf.placeholder(dtype=tf.float32, shape=(1, self.n_dims, self.n_frames))
+            h_optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=0.0001)
+            content_input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(1, self.n_dims, self.n_frames))
+            style_input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(1, self.n_dims, self.n_frames))
             content_encoder = self.encode(content_input)
             style_encoder = self.encode(style_input)
             encoded_style_motion = self.encode_data(style_motion)
             s = 100.0
             c = 1.0
-            H = tf.Variable(initial_value=tf.random_normal(shape=[1, self.hidden_units, int(self.n_frames / 2)]),
+            H = tf.Variable(initial_value=tf.random.normal(shape=[1, self.hidden_units, int(self.n_frames / 2)]),
                             dtype=tf.float32)
             H_decoder = self.decode(H)
 
-            loss_op = c * tf.reduce_mean(tf.pow(H - content_encoder, 2)) + s * tf.reduce_sum(tf.pow(gram_matrix(H) - gram_matrix(style_encoder), 2))
-            style_loss_op = tf.reduce_sum(tf.pow(gram_matrix(H) - gram_matrix(style_encoder), 2))
-            content_loss_op = tf.reduce_mean(tf.pow(H - content_encoder, 2))
+            loss_op = c * tf.reduce_mean(input_tensor=tf.pow(H - content_encoder, 2)) + s * tf.reduce_sum(input_tensor=tf.pow(gram_matrix(H) - gram_matrix(style_encoder), 2))
+            style_loss_op = tf.reduce_sum(input_tensor=tf.pow(gram_matrix(H) - gram_matrix(style_encoder), 2))
+            content_loss_op = tf.reduce_mean(input_tensor=tf.pow(H - content_encoder, 2))
             train_op = h_optimizer.minimize(loss_op, var_list=[H])
-            self.sess.run(tf.variables_initializer(h_optimizer.variables()))
+            self.sess.run(tf.compat.v1.variables_initializer(h_optimizer.variables()))
 
             assign_op = H.assign(encodered_content_motion)
             self.sess.run(assign_op)

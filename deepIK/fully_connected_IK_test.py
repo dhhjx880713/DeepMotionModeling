@@ -17,34 +17,27 @@ rng = np.random.RandomState(123456)
 1. the data should be normalized
 """
 
-def get_training_data():
-    ### holden data
-    data_path = r'E:\workspace\mocap_data\mk_cmu_retargeting\pfnn_data'
-    bvhfiles = glob.glob(os.path.join(data_path, '*.bvh'))
-    for bvhfile in bvhfiles:
-        pass
-
 
 class FullyConnectedIKNetwork(Network):
 
     def __init__(self, name, sess=None):
-        return super().__init__(name, sess)
+        super(FullyConnectedIKNetwork, self).__init__(name, sess)
     
-    def build(self, input_shape, output_shape, reuse=tf.AUTO_REUSE):
-        with tf.variable_scope(self.name, reuse):
-            self.input = tf.placeholder(dtype=tf.float32, shape=(None,)+input_shape)
-            self.output = tf.placeholder(dtype=tf.float32, shape=(None, output_shape))
-            flatten = tf.layers.flatten(self.input, name="flatten")
-            layer1_out = tf.layers.dense(flatten, 128, activation=tf.nn.elu, name='layer1', reuse=reuse)
-            layer2_dropout = tf.layers.dropout(layer1_out, rate=0.5)
-            layer2_out = tf.layers.dense(layer2_dropout, 256, activation=tf.nn.elu, name='layer2', reuse=reuse)
-            layer3_dropout = tf.layers.dropout(layer2_out, rate=0.5)
-            layer3_out = tf.layers.dense(layer3_dropout, 128, activation=tf.nn.elu, name='layer3', reuse=reuse)
-            layer4_dropout = tf.layers.dropout(layer3_out, rate=0.5)
-            self.out_op = tf.layers.dense(layer4_dropout, output_shape, name='layer4', reuse=reuse)
-            self.params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.name)
-            self.saver = tf.train.Saver(self.params)
-            self.cost = tf.reduce_mean(tf.pow(self.out_op - self.output, 2))
+    def build(self, input_shape, output_shape, reuse=tf.compat.v1.AUTO_REUSE):
+        with tf.compat.v1.variable_scope(self.name, reuse):
+            self.input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None,)+input_shape)
+            self.output = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, output_shape))
+            flatten = tf.compat.v1.layers.flatten(self.input, name="flatten")
+            layer1_out = tf.compat.v1.layers.dense(flatten, 128, activation=tf.nn.elu, name='layer1', reuse=reuse)
+            layer2_dropout = tf.compat.v1.layers.dropout(layer1_out, rate=0.5)
+            layer2_out = tf.compat.v1.layers.dense(layer2_dropout, 256, activation=tf.nn.elu, name='layer2', reuse=reuse)
+            layer3_dropout = tf.compat.v1.layers.dropout(layer2_out, rate=0.5)
+            layer3_out = tf.compat.v1.layers.dense(layer3_dropout, 128, activation=tf.nn.elu, name='layer3', reuse=reuse)
+            layer4_dropout = tf.compat.v1.layers.dropout(layer3_out, rate=0.5)
+            self.out_op = tf.compat.v1.layers.dense(layer4_dropout, output_shape, name='layer4', reuse=reuse)
+            self.params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.name)
+            self.saver = tf.compat.v1.train.Saver(self.params)
+            self.cost = tf.reduce_mean(input_tensor=tf.pow(self.out_op - self.output, 2))
                                      
 def create_network(input_shape, output_shape):
     model = tf.keras.models.Sequential([
@@ -182,7 +175,7 @@ def another_train():
     Y = training_data['Y']
     input_shape = (31, 3)
     output_dims = 96
-    sess = tf.InteractiveSession()
+    sess = tf.compat.v1.InteractiveSession()
     model = FullyConnectedIKNetwork("IK", sess=sess)
     model.build(input_shape, output_dims)
     model.train(X, Y, epochs=1, learning_rate=1e-4, batchsize=32)

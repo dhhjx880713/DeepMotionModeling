@@ -12,12 +12,12 @@ def spectrum_pooling_1d(inputs, pool_size, N=512, data_format='channels_first', 
     :param N: 
     :return: 
     '''
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         if data_format == 'channels_last':
-            inputs = tf.transpose(inputs, [0, 2, 1])
+            inputs = tf.transpose(a=inputs, perm=[0, 2, 1])
         assert pool_size % 2 ==0
         ## extend input size to length of N
-        N = tf.convert_to_tensor(N)
+        N = tf.convert_to_tensor(value=N)
 
         # left = tf.reverse(inputs[:, :, :((N-inputs.shape[2])//pooling_size)], axis=-1)
         # right = tf.reverse(inputs[:, :, -(N - inputs.shape[2] - left.shape[2]):], axis=-1)
@@ -31,7 +31,7 @@ def spectrum_pooling_1d(inputs, pool_size, N=512, data_format='channels_first', 
         right = tf.reverse(right, axis=[-1])
         extended_input = tf.concat([left, inputs, right], axis=-1)
 
-        input_fft = tf.fft(tf.complex(extended_input, extended_input * 0.0))
+        input_fft = tf.signal.fft(tf.complex(extended_input, extended_input * 0.0))
         ## spectrum pooling
 
         outputs_fft = tf.concat([input_fft[:, :, :N//(2*pool_size)],
@@ -40,7 +40,7 @@ def spectrum_pooling_1d(inputs, pool_size, N=512, data_format='channels_first', 
                                  axis=-1)
         # outputs_fft = input_fft
         outputs_fft = outputs_fft / pool_size
-        outputs = tf.real(tf.ifft(outputs_fft))[:, :, (N - inputs.shape[2])//(2*pool_size):
+        outputs = tf.math.real(tf.signal.ifft(outputs_fft))[:, :, (N - inputs.shape[2])//(2*pool_size):
                                                      (N + inputs.shape[2])//(2*pool_size)]
         outputs.set_shape((inputs.shape[0], inputs.shape[1], inputs.shape[2]//2))
         # outputs_fft.set_shape((inputs.shape[0], inputs.shape[1], 512))
@@ -56,18 +56,18 @@ def spectrum_pooling_1d_1(inputs, pool_size, data_format='channels_first', name=
     :param N:
     :return:
     '''
-    with tf.variable_scope(name):
+    with tf.compat.v1.variable_scope(name):
         if data_format == 'channels_last':
-            inputs = tf.transpose(inputs, [0, 2, 1])
+            inputs = tf.transpose(a=inputs, perm=[0, 2, 1])
         assert pool_size % 2 == 0
         input_shape = inputs.get_shape().as_list()
-        input_fft = tf.fft(tf.complex(inputs, inputs * 0.0))
+        input_fft = tf.signal.fft(tf.complex(inputs, inputs * 0.0))
         ## spectrum pooling
         outputs_fft = tf.concat([input_fft[:, :, :input_shape[2] // (2 * pool_size)+1 ],
                                  input_fft[:, :, -(input_shape[2] // (2 * pool_size))+1:]],
                                 axis=-1)
         outputs_fft = outputs_fft / pool_size
-        outputs = tf.real(tf.ifft(outputs_fft))
+        outputs = tf.math.real(tf.signal.ifft(outputs_fft))
         return outputs
 
 
@@ -75,11 +75,11 @@ def test_spectrum_pooling():
     stylized_data = np.load(r'../../theano/data/training_data/processed_stylized_data.npz')['clips']
     print(stylized_data.shape)
     X = np.swapaxes(stylized_data, 1, 2)
-    input = tf.placeholder(shape=(1, 70, 240), dtype=tf.float32)
+    input = tf.compat.v1.placeholder(shape=(1, 70, 240), dtype=tf.float32)
     pooling_op = spectrum_pooling_1d(input, pool_size=2)
-    config = tf.ConfigProto()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
-    with tf.Session(config=config) as sess:
+    with tf.compat.v1.Session(config=config) as sess:
         res = sess.run(pooling_op, feed_dict={input: X[0:1]})
         print(res.shape)
 

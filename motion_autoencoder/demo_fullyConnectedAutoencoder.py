@@ -14,18 +14,16 @@ from preprocessing.utils import sliding_window, combine_motion_clips
 
 
 def demo_fullyConnectedEncoder():
-    input_data = np.load(r'./data/training_data/h36m_cmu.npz')['clips']
+    input_data = np.load(r'./data/training_data/cmu_skeleton/ulm.npz')['clips']
     reshaped_input_data = np.reshape(input_data, (input_data.shape[0], input_data.shape[1], np.prod(input_data.shape[2:])))
     n_samples, n_frames, n_dims = reshaped_input_data.shape
     Xmean = reshaped_input_data.mean(axis=1).mean(axis=0)[np.newaxis, np.newaxis, :]
     Xstd = np.array([[[reshaped_input_data.std()]]]).repeat(n_dims, axis=2)
-
-    # print(reshaped_input_data.shape)
     normalized_data = (reshaped_input_data - Xmean) / Xstd
 
     input_2d = np.reshape(normalized_data, (normalized_data.shape[0], np.prod(normalized_data.shape[1:])))
     
-    learning_rate = 0.001
+    learning_rate = 0.01
     n_epochs = 1000
     print(input_2d.shape)
     encoder = FullyConnectedEncoder(npc=10, input_dim=input_2d.shape[1], name='fullyConnectedAutoencoder',
@@ -33,11 +31,11 @@ def demo_fullyConnectedEncoder():
     encoder.create_model()
     # encoder.create_model_2layer()
 
-    encoder.train(input_2d, n_epochs=n_epochs, learning_rate=learning_rate, pre_train=True)
-    save_folder = r'E:\workspace\projects\cGAN\experiment_results'
+    # encoder.train(input_2d, n_epochs=n_epochs, learning_rate=learning_rate, pre_train=True)
+    save_folder = r'./data/experiment_results'
     filename = '_'.join(['fullyConnectedEncoder_pretrain', str(learning_rate), str(n_epochs)])
-    encoder.save_model(os.path.join(save_folder, filename))
-    # encoder.load_model(os.path.join(save_folder, filename))
+    # encoder.save_model(os.path.join(save_folder, filename))
+    encoder.load_model(os.path.join(save_folder, filename))
     backprojection = encoder(input_2d)
     print(backprojection.shape)
     pca_error = np.mean((input_2d - backprojection)**2)
@@ -49,12 +47,11 @@ def demo_fullyConnectedEncoder():
 def pca_evaluation():
     ## load data
     str(Path(__file__).parent.absolute())
-    # input_data = np.load(str(Path(__file__).parent.absolute()) + r'/..' +  r'/data/training_data/cmu_skeleton/ACCAD.npz')['clips']
-    data_path = r'E:\workspace\my_git_repos\deepMotionSynthesis\data\training_data\cmu_skeleton'
+    data_path = r'./data/training_data/cmu_skeleton'
     # datasets = ['h36m', 'pfnn', 'stylistic_raw', 'ulm']
     datasets = ['h36m', 'ACCAD']
     training_data = None
-    save_folder = r'E:\workspace\projects\cGAN\experiment_results'
+    save_folder = r'./data/experiment_results'
     for dataset in datasets:
         if training_data is None:
             training_data = np.load(os.path.join(data_path, dataset + '.npz'))['clips']

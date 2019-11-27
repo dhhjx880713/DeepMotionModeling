@@ -45,4 +45,3 @@ def train_4_layers_fcn_multiframes():
 
 if __name__ == "__main__":
     train_4_layers_fcn()
-    

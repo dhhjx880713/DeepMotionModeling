@@ -20,13 +20,13 @@ class Conv1D(object):
         fan_out = filter_shape[0] * filter_shape[2]
         W_bound = np.sqrt(6. / (fan_in + fan_out))
         W = np.asarray(rng.uniform(low=-W_bound, high=W_bound, size=filter_shape))
-        with tf.variable_scope(self.name):
+        with tf.compat.v1.variable_scope(self.name):
             self.W = tf.Variable(W, name='W', dtype=tf.float32)
         self.params = [self.W]
 
     def __call__(self, input):
-        output = tf.nn.conv1d(input, self.W, stride=self.stride, padding='SAME', data_format="NCW", name=self.name)
+        output = tf.nn.conv1d(input=input, filters=self.W, stride=self.stride, padding='SAME', data_format="NCW", name=self.name)
         return output
 
     def cost(self, gamma=0.01):
-        return gamma * tf.reduce_mean(abs(self.W))
+        return gamma * tf.reduce_mean(input_tensor=abs(self.W))

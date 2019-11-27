@@ -94,4 +94,3 @@ class AdamTrainer:
             
             if filename: self.save(network, filename)
             
-                    

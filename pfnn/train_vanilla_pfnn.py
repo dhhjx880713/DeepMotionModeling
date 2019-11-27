@@ -121,7 +121,7 @@ def finetune_pfnn():
 
     input_data, output_data = get_training_data(training_data_path, meta_data_path, save_path)
     n_controls = 4
-    batchsize = 256
+    batchsize = 32
     dropout = 0.7  
     model = PFNN(n_controls, input_data.shape[1], output_data.shape[1], dropout, batchsize)
     # model = PFNN(n_controls, 343, 311, dropout, batchsize)

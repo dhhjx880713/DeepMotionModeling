@@ -1,7 +1,10 @@
 import numpy as np
 import tensorflow as tf
 
-tf.set_random_seed(23456)  # reproducibility
+if tf.__version__ == '2.0.0':
+    tf.random.set_seed(23456)
+else:
+    tf.compat.v1.set_random_seed(23456)  # reproducibility
 
 
 class PFNNParameter:
@@ -34,7 +37,7 @@ class PFNNParameter:
         alpha = np.asarray(
             rng.uniform(low=-alpha_bound, high=alpha_bound, size=shape),
             dtype=np.float32)
-        return tf.convert_to_tensor(alpha, dtype = tf.float32)
+        return tf.convert_to_tensor(value=alpha, dtype = tf.float32)
     
     def initial_beta(self):
         return tf.zeros(self.bias_shape, tf.float32)
@@ -43,16 +46,16 @@ class PFNNParameter:
     
     def cotrol(self, flag):
         if flag:
-            y0 = tf.nn.embedding_lookup(self.alpha, self.pindex_0)
-            y1 = tf.nn.embedding_lookup(self.alpha, self.pindex_1)
-            y2 = tf.nn.embedding_lookup(self.alpha, self.pindex_2)
-            y3 = tf.nn.embedding_lookup(self.alpha, self.pindex_3)
+            y0 = tf.nn.embedding_lookup(params=self.alpha, ids=self.pindex_0)
+            y1 = tf.nn.embedding_lookup(params=self.alpha, ids=self.pindex_1)
+            y2 = tf.nn.embedding_lookup(params=self.alpha, ids=self.pindex_2)
+            y3 = tf.nn.embedding_lookup(params=self.alpha, ids=self.pindex_3)
             mu = self.wamount
         else:
-            y0 = tf.nn.embedding_lookup(self.beta, self.pindex_0)
-            y1 = tf.nn.embedding_lookup(self.beta, self.pindex_1)
-            y2 = tf.nn.embedding_lookup(self.beta, self.pindex_2)
-            y3 = tf.nn.embedding_lookup(self.beta, self.pindex_3)
+            y0 = tf.nn.embedding_lookup(params=self.beta, ids=self.pindex_0)
+            y1 = tf.nn.embedding_lookup(params=self.beta, ids=self.pindex_1)
+            y2 = tf.nn.embedding_lookup(params=self.beta, ids=self.pindex_2)
+            y3 = tf.nn.embedding_lookup(params=self.beta, ids=self.pindex_3)
             mu = self.bamount
         return cubic(y0, y1, y2, y3, mu)
 
@@ -105,7 +108,7 @@ def regularization_penalty(alpha, gamma):
     number_alpha = len(alpha)
     penalty = 0
     for i in range(number_alpha):
-        penalty += tf.reduce_mean(tf.abs(alpha[i]))
+        penalty += tf.reduce_mean(input_tensor=tf.abs(alpha[i]))
     return gamma * penalty / number_alpha
 
 

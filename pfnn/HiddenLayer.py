@@ -24,4 +24,3 @@ class HiddenLayer(Layer):
     def __call__(self, input):
         return self.W.dot(input.T).T
 
-        

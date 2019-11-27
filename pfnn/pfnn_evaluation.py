@@ -117,7 +117,7 @@ def evaluate_diag_pfnn_error():
         style_model.create_model_diagonal()    
         # print(database.keys())
         style_model.load_params_from_theano(database)
-        style_model.sess.run(tf.variables_initializer(style_model.style_params))
+        style_model.sess.run(tf.compat.v1.variables_initializer(style_model.style_params))
         print(style_model.sess.run(style_model.loss,  feed_dict={style_model.input: style_input[:256], style_model.Y: style_output[:256]}))  
 
     

@@ -18,7 +18,7 @@ def download_from_oc(user, pw, src_path, dst_path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Upload data to owncloud.')
+    parser = argparse.ArgumentParser(description='download data from owncloud.')
     parser.add_argument('user', nargs='?', help='user')
     parser.add_argument('pw', nargs='?', help='pw')
     parser.add_argument('src_path', nargs='?', default='./workspace/repos/deepmotionmodeling/data', help='path')

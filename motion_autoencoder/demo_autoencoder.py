@@ -71,25 +71,25 @@ def demo_motion_encoder_spectrum_pooling_single_file(bvhfile):
             test_data = test_data[:, :, :-1]
         n_samples, n_dims, n_frames = test_data.shape
         normalized_data = (test_data - preprocess['Xmean']) / preprocess['Xstd']
-        input = tf.placeholder(tf.float32, shape=[1, n_dims, n_frames])
+        input = tf.compat.v1.placeholder(tf.float32, shape=[1, n_dims, n_frames])
         encoder_op = motion_encoder_channel_first(input, name='encoder', hidden_units=256, pooling='spectrum',
                                                 kernel_size=25)
         decoder_op = motion_decoder_channel_first(encoder_op, n_dims, name='decoder', unpool='spectrum', kernel_size=25)
 
-        pool_input = tf.placeholder(dtype=tf.float32, shape=[1, n_dims, n_frames])
+        pool_input = tf.compat.v1.placeholder(dtype=tf.float32, shape=[1, n_dims, n_frames])
         pooled_decoder = spectrum_pooling_1d(pool_input, pool_size=2, N=512)
         # print(decoder_op.shape)
         unpooled_decoder = spectrum_unpooling_1d(pooled_decoder, pool_size=2, N=512)
 
         # average_pooled_decoder = tf.layers.average_pooling1d(input, 2, strides=2, data_format='channels_first')
         # average_unpooled_decoder = average_unpooling_1d(average_pooled_decoder, 2, data_format='channels_first')
-        saver = tf.train.Saver()
-        config = tf.ConfigProto()
+        saver = tf.compat.v1.train.Saver()
+        config = tf.compat.v1.ConfigProto()
         config.gpu_options.allow_growth = True
         reconstructed_clips = []
         out_dir = r'../data/results'
-        with tf.Session(config=config) as sess:
-            sess.run(tf.global_variables_initializer())
+        with tf.compat.v1.Session(config=config) as sess:
+            sess.run(tf.compat.v1.global_variables_initializer())
             saver.restore(sess, 'data/core_network_spectrum_pooling_250_0.00001.ckpt')
             # saver.restore(sess, 'data/core_network_average_pooling_500.ckpt')
             for i in range(n_samples):
@@ -114,7 +114,7 @@ def demo_motion_encoder_single_file(bvhfile, body_plane_indice=[2, 17, 13]):
     """
     meta_data = r'../data/models/preprocessed_core_channel_first.npz'
     model_file = r'../data/models/core_network_average_pooling_300.ckpt'
-    if not os.path.exists(meta_data) or not os.path.exists(model_file):
+    if not os.path.exists(meta_data) or not os.path.exists(model_file + '.index'):
         print("run load_data to create data folder!")
         return
     else:
@@ -130,18 +130,18 @@ def demo_motion_encoder_single_file(bvhfile, body_plane_indice=[2, 17, 13]):
 
         n_samples, n_dims, n_frames = test_data.shape
         normalized_data = (test_data - preprocess['Xmean']) / preprocess['Xstd']
-        input = tf.placeholder(tf.float32, shape=[1, n_dims, n_frames])
+        input = tf.compat.v1.placeholder(tf.float32, shape=[1, n_dims, n_frames])
         encoder_op = motion_encoder_channel_first(input, name='encoder', hidden_units=256, pooling='average')
         decoder_op = motion_decoder_channel_first(encoder_op, n_dims, name='decoder', unpool='average')
 
-        saver = tf.train.Saver()
-        config = tf.ConfigProto()
+        saver = tf.compat.v1.train.Saver()
+        config = tf.compat.v1.ConfigProto()
         config.gpu_options.allow_growth = True
         out_dir = r'../data/results'
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
-        with tf.Session(config=config) as sess:
-            sess.run(tf.global_variables_initializer())
+        with tf.compat.v1.Session(config=config) as sess:
+            sess.run(tf.compat.v1.global_variables_initializer())
             saver.restore(sess, model_file)
             encoded_motion = sess.run(encoder_op, feed_dict={input: normalized_data})
             print('encoded motion shape: ', encoded_motion.shape)
@@ -165,16 +165,16 @@ def demo_autoencoder_strides(bvhfile, body_plane_indice=[2, 17, 13]):
     n_frames, n_dims = test_data.shape
     test_data = np.swapaxes(test_data, 0, 1)[np.newaxis, :, :]
     normalized_data = (test_data - preprocess['Xmean']) / preprocess['Xstd']
-    input = tf.placeholder(tf.float32, [1, n_dims, n_frames])
+    input = tf.compat.v1.placeholder(tf.float32, [1, n_dims, n_frames])
     encoder_op = motion_encoder_stride(input, name='encoder')
     decoder_op = motion_decoder_stride2d(encoder_op, n_dims, name='decoder')
-    encoder_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='encoder')
-    decoder_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='decoder')
-    saver = tf.train.Saver(encoder_params + decoder_params)
-    config = tf.ConfigProto()
+    encoder_params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope='encoder')
+    decoder_params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope='decoder')
+    saver = tf.compat.v1.train.Saver(encoder_params + decoder_params)
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
-    with tf.Session(config=config) as sess:
-        sess.run(tf.global_variables_initializer())
+    with tf.compat.v1.Session(config=config) as sess:
+        sess.run(tf.compat.v1.global_variables_initializer())
         saver.restore(sess, 'data/core_network_stride2_2d_200.ckpt')
         # reconstructed_motion = sess.run(decoder_op, feed_dict={input: normalized_data[13:14]})
         reconstructed_motion = sess.run(decoder_op, feed_dict={input: normalized_data})
@@ -196,19 +196,19 @@ def demo_autoencoder_strides_multilayers():
     n_frames, n_dims = test_data.shape
     test_data = np.swapaxes(test_data, 0, 1)[np.newaxis, :, :]
     normalized_data = (test_data - preprocess['Xmean']) / preprocess['Xstd']
-    input = tf.placeholder(tf.float32, [1, n_dims, n_frames])
+    input = tf.compat.v1.placeholder(tf.float32, [1, n_dims, n_frames])
     # encoder_op = motion_encoder_stride_multilayers(input, name='encoder')
     #
     # decoder_op = motion_decoder_stride2d_multilayers(encoder_op, n_dims, name='decoder')
     encoder_op = motion_encoder_multilayers(input, name='encoder')
     decoder_op = motion_decoder_multilayers(encoder_op, n_dims, name='decoder')
-    encoder_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='encoder')
-    decoder_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='decoder')
-    saver = tf.train.Saver(encoder_params + decoder_params)
-    config = tf.ConfigProto()
+    encoder_params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope='encoder')
+    decoder_params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope='decoder')
+    saver = tf.compat.v1.train.Saver(encoder_params + decoder_params)
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
-    with tf.Session(config=config) as sess:
-        sess.run(tf.global_variables_initializer())
+    with tf.compat.v1.Session(config=config) as sess:
+        sess.run(tf.compat.v1.global_variables_initializer())
         saver.restore(sess, 'data/core_network_multilayers.ckpt')
         # reconstructed_motion = sess.run(decoder_op, feed_dict={input: normalized_data[13:14]})
         reconstructed_motion = sess.run(decoder_op, feed_dict={input: normalized_data})
@@ -232,15 +232,15 @@ def demo_motion_autoencoder_channel_first_combined():
     n_clips, n_frames, n_dims = test_clips.shape
     test_clips = np.swapaxes(test_clips, 1, 2)
     normalized_clips = (test_clips - preprocess['Xmean']) / preprocess['Xstd']
-    input = tf.placeholder(tf.float32, [None, n_dims, n_frames])
+    input = tf.compat.v1.placeholder(tf.float32, [None, n_dims, n_frames])
     encoder_op = motion_encoder_channel_first(input, name='encoder')
     decoder_op = motion_decoder_channel_first(encoder_op, n_dims, name='decoder')
 
-    saver = tf.train.Saver()
-    config = tf.ConfigProto()
+    saver = tf.compat.v1.train.Saver()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
-    with tf.Session(config=config) as sess:
-        sess.run(tf.global_variables_initializer())
+    with tf.compat.v1.Session(config=config) as sess:
+        sess.run(tf.compat.v1.global_variables_initializer())
         saver.restore(sess, 'data/core_network_channel_first.ckpt')
         reconstructed_clips = np.zeros((n_clips, n_dims, n_frames))
         for i in range(n_clips):
@@ -269,15 +269,15 @@ def demo_motion_spectrum_autoencoder():
     test_data = np.swapaxes(test_data, 0, 1)[np.newaxis, :, :]
     normalized_test_data = (test_data - preprocess['Xmean']) / preprocess['Xstd']
     print(normalized_test_data.shape)
-    input = tf.placeholder(tf.float32, [None, n_dims, n_frames])
+    input = tf.compat.v1.placeholder(tf.float32, [None, n_dims, n_frames])
     encoder_op = motion_encoder_channel_first(input)
     decoder_op = motion_decoder_channel_first(encoder_op, n_dims)
-    init = tf.global_variables_initializer()
-    saver = tf.train.Saver()
-    config = tf.ConfigProto()
+    init = tf.compat.v1.global_variables_initializer()
+    saver = tf.compat.v1.train.Saver()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
     save_filename = r'E:\tmp\reconstructed_expmap.bvh'
-    with tf.Session(config=config) as sess:
+    with tf.compat.v1.Session(config=config) as sess:
         sess.run(init)
         saver.restore(sess, 'data/core_network_expmap')
         reconstructed_motion = sess.run(decoder_op, feed_dict={input: normalized_test_data})
@@ -303,15 +303,15 @@ def demo_motion_autoencoder_expmap():
     test_data = np.swapaxes(test_data, 0, 1)[np.newaxis, :, :]
     normalized_test_data = (test_data - preprocess['Xmean']) / preprocess['Xstd']
     print(normalized_test_data.shape)
-    input = tf.placeholder(tf.float32, [None, n_dims, n_frames])
+    input = tf.compat.v1.placeholder(tf.float32, [None, n_dims, n_frames])
     encoder_op = motion_encoder_channel_first(input)
     decoder_op = motion_decoder_channel_first(encoder_op, n_dims)
-    init = tf.global_variables_initializer()
-    saver = tf.train.Saver()
-    config = tf.ConfigProto()
+    init = tf.compat.v1.global_variables_initializer()
+    saver = tf.compat.v1.train.Saver()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
     save_filename = r'E:\tmp\reconstructed_expmap.bvh'
-    with tf.Session(config=config) as sess:
+    with tf.compat.v1.Session(config=config) as sess:
         sess.run(init)
         saver.restore(sess, 'data/core_network_expmap')
         reconstructed_motion = sess.run(decoder_op, feed_dict={input: normalized_test_data})
@@ -335,14 +335,14 @@ def demo_motion_autoencoder_channel_first_without_pooling():
     n_frames, n_dims = test_data.shape
     test_data = np.swapaxes(test_data, 0, 1)[np.newaxis, :, :]
     normalized_data = (test_data - preprocess['Xmean']) / preprocess['Xstd']
-    input = tf.placeholder(tf.float32, [None, n_dims, n_frames])
+    input = tf.compat.v1.placeholder(tf.float32, [None, n_dims, n_frames])
     encoder_op = motion_encoder_without_pooling(input)
     decoder_op = motion_decoder_without_pooling(encoder_op, n_dims)
-    init = tf.global_variables_initializer()
-    saver = tf.train.Saver()
-    config = tf.ConfigProto()
+    init = tf.compat.v1.global_variables_initializer()
+    saver = tf.compat.v1.train.Saver()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
-    with tf.Session(config=config) as sess:
+    with tf.compat.v1.Session(config=config) as sess:
         sess.run(init)
         saver.restore(sess, 'data/core_network_without_pooling')
         # reconstructed_motion = sess.run(decoder_op, feed_dict={input: normalized_data[13:14]})

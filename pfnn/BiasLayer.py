@@ -9,7 +9,7 @@ class BiasLayer(Layer):
         self.name = name
         # zero initialization
         b_value = np.zeros(shape, dtype=np.float32)
-        with tf.variable_scope(self.name):
+        with tf.compat.v1.variable_scope(self.name):
             self.b = tf.Variable(b_value, name='b', dtype=tf.float32)
         self.params = [self.b]
 

@@ -540,6 +540,7 @@ def process_data(global_positions, phase, gait, type='flat', scale=False):
                 rootdirs_next[:,0].ravel(), rootdirs_next[:,2].ravel(), # Next Trajectory Dir
                 local_positions[i].ravel(),  # Joint Pos
                 local_velocities[i].ravel(), # Joint Vel
+                local_rotations[i].ravel()   # Joint Rot
                 ]))
     Xc = np.asarray(Xc)
     Yc = np.asarray(Yc)

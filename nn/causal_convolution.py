@@ -2,7 +2,7 @@
 import tensorflow as tf
 
 
-class CausalConv1D(tf.layers.Conv1D):
+class CausalConv1D(tf.compat.v1.layers.Conv1D):
     def __init__(self, filters,
                  kernel_size,
                  strides=1,
@@ -12,7 +12,7 @@ class CausalConv1D(tf.layers.Conv1D):
                  activation=None,
                  use_bias=True,
                  kernel_initializer=None,
-                 bias_initializer=tf.zeros_initializer(),
+                 bias_initializer=tf.compat.v1.zeros_initializer(),
                  kernel_regularizer=None,
                  bias_regularizer=None,
                  activity_regularizer=None,

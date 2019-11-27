@@ -14,22 +14,22 @@ class DilatedTCN_IK(Network):
     def __init__(self, name, sess=None):
         return super().__init__(name, sess=sess)
     
-    def build(self, input_shape, output_shape, reuse=tf.AUTO_REUSE):
+    def build(self, input_shape, output_shape, reuse=tf.compat.v1.AUTO_REUSE):
         
-        with tf.variable_scope(self.name, reuse):
-            self.input = tf.placeholder(dtype=tf.float32, shape=(None, None, input_shape))
-            self.output = tf.placeholder(dtype=tf.float32, shape=(None, None, output_shape))
-            layer1_dropout = tf.layers.dropout(self.input, rate=0.5)
+        with tf.compat.v1.variable_scope(self.name, reuse):
+            self.input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, None, input_shape))
+            self.output = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, None, output_shape))
+            layer1_dropout = tf.compat.v1.layers.dropout(self.input, rate=0.5)
             layer1 = CausalConv1D(128, kernel_size=5, dilation_rate=1, activation=tf.nn.elu)(layer1_dropout)
-            layer2_dropout = tf.layers.dropout(layer1, rate=0.5)
+            layer2_dropout = tf.compat.v1.layers.dropout(layer1, rate=0.5)
             layer2 = CausalConv1D(256, kernel_size=5, dilation_rate=2, activation=tf.nn.elu)(layer2_dropout)
-            layer3_dropout = tf.layers.dropout(layer2, rate=0.5)
+            layer3_dropout = tf.compat.v1.layers.dropout(layer2, rate=0.5)
             layer3 = CausalConv1D(128, kernel_size=5, dilation_rate=4, activation=tf.nn.elu)(layer3_dropout)
-            layer4_dropout = tf.layers.dropout(layer3, rate=0.5)
+            layer4_dropout = tf.compat.v1.layers.dropout(layer3, rate=0.5)
             self.output_op = CausalConv1D(output_shape, kernel_size=5, dilation_rate=1, activation=tf.nn.elu)(layer4_dropout)
-            self.params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.name)
-            self.saver = tf.train.Saver(self.params)
-            self.cost = tf.reduce_mean(tf.pow(self.output_op - self.output, 2))
+            self.params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.name)
+            self.saver = tf.compat.v1.train.Saver(self.params)
+            self.cost = tf.reduce_mean(input_tensor=tf.pow(self.output_op - self.output, 2))
         
     def train(self, input_data, output_data, epochs, learning_rate, rng=np.random.RandomState(123456)):
         """one by one training for variable-length input
@@ -41,9 +41,9 @@ class DilatedTCN_IK(Network):
             learning_rate {float} 
         
         """
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+        self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
         train_op = self.optimizer.minimize(self.cost)
-        self.sess.run(tf.global_variables_initializer())
+        self.sess.run(tf.compat.v1.global_variables_initializer())
         last_mean = 0
         for epoch in range(epochs):
             # rng.shuffle(input_data)

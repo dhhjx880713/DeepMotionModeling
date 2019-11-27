@@ -74,6 +74,7 @@ def train_resPfnn(style, model_file, meta_path, input_data, save_path):
 
 
 def train_resPfnn_local():
+    
     target_style = "angry"
     model_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn\network_parameters\cmu_ground\network.npz'
     training_data_path = r'D:\workspace\projects\variational_style_simulation\training_data\pfnn_preprocessing\mk_cmu_database' + '_' + target_style + '.npz'
@@ -88,23 +89,23 @@ def train_resPfnn_cmd():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("-style", 
-                        "--target_style", 
+                        nargs='?',
                         type=str,
                         required=True)
     parser.add_argument("-model_file", 
-                        "--model_file", 
+                        nargs='?',
                         type=str,
                         required=True)   
     parser.add_argument("-meta_path", 
-                        "--meta_path", 
+                        nargs='?',
                         type=str,
                         required=True)   
     parser.add_argument("-input_data", 
-                        "--input_data", 
+                        nargs='?',
                         type=str,
                         required=True)                                                                  
     parser.add_argument("-save_path", 
-                        "--save_path", 
+                        nargs='?', 
                         type=str,
                         required=True)
     args = parser.parse_args()
@@ -116,5 +117,6 @@ def train_resPfnn_cmd():
 
 
 if __name__ == "__main__":
-    train_resPfnn_cmd()
+    # train_resPfnn_cmd()
     # train_diagonal_resPfnn()
+    train_resPfnn_local()

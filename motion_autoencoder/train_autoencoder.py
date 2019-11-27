@@ -1,16 +1,22 @@
 # encoding: UTF-8
 import numpy as np
 import tensorflow as tf
-from models import motion_decoder_channel_first, motion_encoder_channel_first, \
+from models.simple_models import motion_decoder_channel_first, motion_encoder_channel_first, \
     motion_encoder_without_pooling, motion_decoder_without_pooling
 import sys
 import copy
 from datetime import datetime
 import os
-from model.conv_autoencoder import ConvAutoEncoder
+from models.conv_autoencoder import ConvAutoEncoder
 
 
 def train_autoencoder_channel_first(fine_tuning=False):
+    """train a single convolutional layer network for motion encoding and decoding
+    
+    Keyword Arguments:
+        fine_tuning {bool} -- [description] (default: {False})
+    """
+
     accad_data = np.load(r'../theano/data/training_data/processed_accad_data.npz')['clips']
     cmu_data = np.load(r'../theano/data/training_data/processed_cmu_data.npz')['clips']
     stylized_data = np.load(r'../theano/data/training_data/processed_stylized_data.npz')['clips']
@@ -48,7 +54,7 @@ def train_autoencoder_channel_first(fine_tuning=False):
     n_epochs = 10
     learning_rate = 0.00001
     n_samples, n_dims, n_frames = X.shape
-    input = tf.placeholder(tf.float32, shape=[batchsize, n_dims, n_frames])
+    input = tf.compat.v1.placeholder(tf.float32, shape=[batchsize, n_dims, n_frames])
     # output  = tf.placeholder(tf.float32, shape=[batchsize, n_dims, n_frames])
     encoder_op = motion_encoder_channel_first(input, name='encoder', hidden_units=512, pooling='average',
                                               kernel_size=25, batch_normalization=True)
@@ -56,21 +62,21 @@ def train_autoencoder_channel_first(fine_tuning=False):
     decoder_op = motion_decoder_channel_first(encoder_op, n_dims, name='decoder', unpool='average', kernel_size=25)
     # pool_input = spectrum_pooling_1d(input, pool_size=2, N=512)
     # smoothed_input = spectrum_unpooling_1d(pool_input, pool_size=2, N=512)
-    loss_op = tf.reduce_mean(tf.pow(input - decoder_op, 2))
-    optimizer = tf.train.AdamOptimizer(learning_rate)
+    loss_op = tf.reduce_mean(input_tensor=tf.pow(input - decoder_op, 2))
+    optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
     train_op = optimizer.minimize(loss_op)
-    encoder_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='encoder')
-    decoder_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='decoder')
-    saver = tf.train.Saver(encoder_params + decoder_params)
+    encoder_params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope='encoder')
+    decoder_params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope='decoder')
+    saver = tf.compat.v1.train.Saver(encoder_params + decoder_params)
     if fine_tuning:
-        motion_encoder_origin_saver = tf.train.Saver(encoder_params + decoder_params)
+        motion_encoder_origin_saver = tf.compat.v1.train.Saver(encoder_params + decoder_params)
         motion_encoder_origin_file = r'data\ulm_core_network_64_hidden_1e-05_5.ckpt'
     save_dir = 'data'
     # model_file = 'data/core_network_spectrum_pooling_250_0.00001_fine_tuning.ckpt'
-    config = tf.ConfigProto()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
-    with tf.Session(config=config) as sess:
-        sess.run(tf.global_variables_initializer())
+    with tf.compat.v1.Session(config=config) as sess:
+        sess.run(tf.compat.v1.global_variables_initializer())
         # if fine_tuning:
         #     motion_encoder_origin_saver.restore(sess, motion_encoder_origin_file)
         #     model_file_name = motion_encoder_origin_file
@@ -132,7 +138,7 @@ def train_autoencoder_stride():
     learning_rate = 0.0001
     n_samples, n_dims, n_frames = X.shape
 
-    input = tf.placeholder(tf.float32, shape=[batchsize, n_dims, n_frames])
+    input = tf.compat.v1.placeholder(tf.float32, shape=[batchsize, n_dims, n_frames])
     encoder_op = motion_encoder_stride(input, name='encoder')
     # decoder_op = motion_decoder_stride(encoder_op, n_dims, name='decoder')
 
@@ -140,19 +146,19 @@ def train_autoencoder_stride():
     # print(encoder_op.shape)
     # print(decoder_op.shape)
 
-    loss_op = tf.reduce_mean(tf.pow(input - decoder_op, 2))
-    optimizer = tf.train.AdamOptimizer(learning_rate)
+    loss_op = tf.reduce_mean(input_tensor=tf.pow(input - decoder_op, 2))
+    optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
     train_op = optimizer.minimize(loss_op)
-    init = tf.global_variables_initializer()
-    encoder_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='encoder')
-    decoder_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='decoder')
+    init = tf.compat.v1.global_variables_initializer()
+    encoder_params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope='encoder')
+    decoder_params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope='decoder')
 
 
-    saver = tf.train.Saver(encoder_params + decoder_params)
+    saver = tf.compat.v1.train.Saver(encoder_params + decoder_params)
     model_file = 'data/core_network_stride2_2d_200.ckpt'
-    config = tf.ConfigProto()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
-    with tf.Session(config=config) as sess:
+    with tf.compat.v1.Session(config=config) as sess:
         sess.run(init)
         last_mean = 0
         for epoch in range(n_epochs):
@@ -294,18 +300,18 @@ def train_autoencoder_channel_first_without_pooling():
     n_epochs = 250
     learning_rate = 0.0001
     n_samples, n_dims, n_frames = X.shape
-    input = tf.placeholder(tf.float32, shape=[None, n_dims, n_frames])
+    input = tf.compat.v1.placeholder(tf.float32, shape=[None, n_dims, n_frames])
     encoder_op = motion_encoder_without_pooling(input)
     decoder_op = motion_decoder_without_pooling(encoder_op, n_dims)
-    loss_op = tf.reduce_mean(tf.pow(input - decoder_op, 2))
-    optimizer = tf.train.AdamOptimizer(learning_rate)
+    loss_op = tf.reduce_mean(input_tensor=tf.pow(input - decoder_op, 2))
+    optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
     train_op = optimizer.minimize(loss_op)
-    init = tf.global_variables_initializer()
-    saver = tf.train.Saver()
+    init = tf.compat.v1.global_variables_initializer()
+    saver = tf.compat.v1.train.Saver()
     model_file = 'data/core_network_without_pooling'
-    config = tf.ConfigProto()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
-    with tf.Session(config=config) as sess:
+    with tf.compat.v1.Session(config=config) as sess:
         sess.run(init)
         last_mean = 0
         for epoch in range(n_epochs):
@@ -359,18 +365,18 @@ def train_autoencoder_expmap():
     n_files = len(filelist)
     n_epochs = 200
     learning_rate = 0.0001
-    input = tf.placeholder(dtype=tf.float32, shape=[None, X.shape[1], None])
+    input = tf.compat.v1.placeholder(dtype=tf.float32, shape=[None, X.shape[1], None])
     encoder_op = motion_encoder_channel_first(input)
     decoder_op = motion_decoder_channel_first(encoder_op, X.shape[1])
-    loss_op = tf.reduce_mean(tf.pow(input - decoder_op, 2))
-    optimizer = tf.train.AdamOptimizer(learning_rate)
+    loss_op = tf.reduce_mean(input_tensor=tf.pow(input - decoder_op, 2))
+    optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
     train_op = optimizer.minimize(loss_op)
-    init = tf.global_variables_initializer()
-    saver = tf.train.Saver()
+    init = tf.compat.v1.global_variables_initializer()
+    saver = tf.compat.v1.train.Saver()
     model_file = 'data/core_network_expmap'
-    config = tf.ConfigProto()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
-    with tf.Session(config=config) as sess:
+    with tf.compat.v1.Session(config=config) as sess:
         sess.run(init)
         last_mean = 0
         for epoch in range(n_epochs):

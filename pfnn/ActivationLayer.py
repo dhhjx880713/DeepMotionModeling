@@ -28,4 +28,3 @@ class ActivationLayer(Layer):
         self.params = params
         
     def __call__(self, input): return self.f(input)
-        

@@ -30,8 +30,8 @@ class PFNN(Layer):
     def __init__(self, nControlPoints, input_dim, output_dim, dropout_rate, batchsize, name='pfnn', sess=None):
         super(PFNN, self).__init__()
         self.nControlPoints = nControlPoints
-        self.input = tf.placeholder(tf.float32, shape=[None, input_dim])
-        self.Y = tf.placeholder(tf.float32, shape=[None, output_dim])
+        self.input = tf.compat.v1.placeholder(tf.float32, shape=[None, input_dim])
+        self.Y = tf.compat.v1.placeholder(tf.float32, shape=[None, output_dim])
         self.phase = self.input[:, -1]
         self.P0 = PFNNParameter((nControlPoints, 512, input_dim - 1), rng, self.phase, 'wb0')
         self.P1 = PFNNParameter((nControlPoints, 512, 512), rng, self.phase, 'wb1')
@@ -44,7 +44,9 @@ class PFNN(Layer):
         if sess is not None:
             self.sess = sess
         else:
-            self.sess = tf.Session()
+            config = tf.compat.v1.ConfigProto()
+            config.gpu_options.allow_growth = True
+            self.sess = tf.compat.v1.Session(config=config)
 
     def load_params_from_theano(self, database):
         self.load(self.sess, database, mapping_dict=MODEL_PARAMS_MAPPING)
@@ -60,33 +62,33 @@ class PFNN(Layer):
     def create_model(self):
         H0 = self.input[:, :-1]
         H0 = tf.expand_dims(H0, -1)
-        H0 = tf.nn.dropout(H0, keep_prob=self.dropout)
+        H0 = tf.nn.dropout(H0, rate=1 - (self.dropout))
 
         b0 = tf.expand_dims(self.P0.bias, -1)
         H1 = tf.matmul(self.P0.weight, H0) + b0
         H1 = tf.nn.elu(H1)
-        H1 = tf.nn.dropout(H1, keep_prob=self.dropout)
+        H1 = tf.nn.dropout(H1, rate=1 - (self.dropout))
 
         b1 = tf.expand_dims(self.P1.bias, -1)
         H2 = tf.matmul(self.P1.weight, H1) + b1
         H2 = tf.nn.elu(H2)
-        H2 = tf.nn.dropout(H2, keep_prob=self.dropout)
+        H2 = tf.nn.dropout(H2, rate=1 - (self.dropout))
 
         b2 = tf.expand_dims(self.P2.bias, -1)
         H3 = tf.matmul(self.P2.weight, H2) + b2
         H3 = tf.squeeze(H3, -1)
-        self.loss = tf.reduce_mean(tf.square(H3 - self.Y))
+        self.loss = tf.reduce_mean(input_tensor=tf.square(H3 - self.Y))
         self.output = H3
-        self.params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-        self.saver = tf.train.Saver(self.params)
+        self.params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES)
+        self.saver = tf.compat.v1.train.Saver(self.params)
 
     def train(self, training_data, output_data, n_epoches, learning_rate=0.0001, fine_turning=False):
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+        self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
         train_op = self.optimizer.minimize(self.loss)
         if not fine_turning:
-            self.sess.run(tf.global_variables_initializer())
+            self.sess.run(tf.compat.v1.global_variables_initializer())
         else:
-            self.sess.run(tf.variables_initializer(self.optimizer.variables()))
+            self.sess.run(tf.compat.v1.variables_initializer(self.optimizer.variables()))
         n_samples, n_features = training_data.shape
         last_mean = 0
         for epoch in range(n_epoches):

@@ -40,7 +40,7 @@ def gram_matrix(X):
     :param X:
     :return: gram_matrix n_batches * n_dims * n_dims, sum over n_frames
     '''
-    return tf.reduce_mean(tf.expand_dims(X, 2) * tf.expand_dims(X, 1), axis=3)
+    return tf.reduce_mean(input_tensor=tf.expand_dims(X, 2) * tf.expand_dims(X, 1), axis=3)
 
 
 def convert_anim_to_point_cloud_tf(anim):
@@ -67,16 +67,16 @@ def convert_anim_to_point_cloud_tf(anim):
 
     ones = tf.ones((n_frames, n_joints, 1))
     extended_joints = tf.concat((joints, ones), axis=-1)
-    swapped_joints = tf.transpose(extended_joints, (0, 2, 1))
+    swapped_joints = tf.transpose(a=extended_joints, perm=(0, 2, 1))
     # print('swapped joints shape: ', swapped_joints.shape)
     rotated_joints = tf.matmul(rotmat, swapped_joints)
-    rotated_joints = tf.transpose(rotated_joints, (0, 2, 1))[:, :, :-1]
+    rotated_joints = tf.transpose(a=rotated_joints, perm=(0, 2, 1))[:, :, :-1]
     """ Rotate Velocity"""
     trans = tf.concat((v_x, tf.zeros((n_frames, 1)), v_z, tf.ones((n_frames, 1))), axis=-1)
     trans = tf.expand_dims(trans, 1)
-    swapped_trans = tf.transpose(trans, (0, 2, 1))
+    swapped_trans = tf.transpose(a=trans, perm=(0, 2, 1))
     rotated_trans = tf.matmul(rotmat, swapped_trans)
-    rotated_trans = tf.transpose(rotated_trans, (0, 2, 1))
+    rotated_trans = tf.transpose(a=rotated_trans, perm=(0, 2, 1))
     v_x = rotated_trans[:, :, 0]
     v_z = rotated_trans[:, :, 2]
     v_x, v_z = tf.cumsum(v_x, axis=0), tf.cumsum(v_z, axis=0)

@@ -11,22 +11,22 @@ from datetime import datetime
 class FCN_IK(Network):
 
     def __init__(self, name, sess=None):
-        return super().__init__(name, sess=sess)
+        super().__init__(name, sess=sess)
 
-    def build(self, input_shape, output_shape, reuse=tf.AUTO_REUSE):
-        with tf.variable_scope(self.name, reuse):
-            self.input = tf.placeholder(dtype=tf.float32, shape=(None, input_shape))
-            self.output = tf.placeholder(dtype=tf.float32, shape=(None, output_shape))
-            layer1_out = tf.layers.dense(self.input, 128, activation=tf.nn.elu, name='layer1', reuse=reuse)
-            layer2_dropout = tf.layers.dropout(layer1_out, rate=0.5)
-            layer2_out = tf.layers.dense(layer2_dropout, 256, activation=tf.nn.elu, name='layer2', reuse=reuse)
-            layer3_dropout = tf.layers.dropout(layer2_out, rate=0.5)
-            layer3_out = tf.layers.dense(layer3_dropout, 128, activation=tf.nn.elu, name='layer3', reuse=reuse)
-            layer4_dropout = tf.layers.dropout(layer3_out, rate=0.5)
-            self.output_op = tf.layers.dense(layer4_dropout, output_shape, name='layer4', reuse=reuse)
-            self.params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.name)
-            self.saver = tf.train.Saver(self.params)
-            self.cost = tf.reduce_mean(tf.pow(self.output_op - self.output, 2))
+    def build(self, input_shape, output_shape, reuse=tf.compat.v1.AUTO_REUSE):
+        with tf.compat.v1.variable_scope(self.name, reuse):
+            self.input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, input_shape))
+            self.output = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, output_shape))
+            layer1_out = tf.compat.v1.layers.dense(self.input, 128, activation=tf.nn.elu, name='layer1', reuse=reuse)
+            layer2_dropout = tf.compat.v1.layers.dropout(layer1_out, rate=0.5)
+            layer2_out = tf.compat.v1.layers.dense(layer2_dropout, 256, activation=tf.nn.elu, name='layer2', reuse=reuse)
+            layer3_dropout = tf.compat.v1.layers.dropout(layer2_out, rate=0.5)
+            layer3_out = tf.compat.v1.layers.dense(layer3_dropout, 128, activation=tf.nn.elu, name='layer3', reuse=reuse)
+            layer4_dropout = tf.compat.v1.layers.dropout(layer3_out, rate=0.5)
+            self.output_op = tf.compat.v1.layers.dense(layer4_dropout, output_shape, name='layer4', reuse=reuse)
+            self.params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.name)
+            self.saver = tf.compat.v1.train.Saver(self.params)
+            self.cost = tf.reduce_mean(input_tensor=tf.pow(self.output_op - self.output, 2))
     
     def train(self, input_data, output_data, epochs, learning_rate, rng=np.random.RandomState(123456)):
         """one by one training for variable-length input
@@ -38,9 +38,9 @@ class FCN_IK(Network):
             learning_rate {float} 
         
         """
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+        self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
         train_op = self.optimizer.minimize(self.cost)
-        self.sess.run(tf.global_variables_initializer())
+        self.sess.run(tf.compat.v1.global_variables_initializer())
         last_mean = 0
         for epoch in range(epochs):
             loss = []
@@ -58,4 +58,3 @@ class FCN_IK(Network):
             diff_mean, last_mean = curr_mean-last_mean, curr_mean
             print('\r[Epoch %i] 100.0%% mean %.5f diff %.5f %s' %
                 (epoch, curr_mean, diff_mean, str(datetime.now())[11:19])) 
-    

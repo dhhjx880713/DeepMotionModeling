@@ -18,12 +18,12 @@ class MotionVaeEncoder(object):
         self.encoder_activation = encoder_activation
         self.decoder_activation = decoder_activation
         self.n_random_samples = n_random_samples
-        self.sess = tf.InteractiveSession()
+        self.sess = tf.compat.v1.InteractiveSession()
 
     @staticmethod
     def fully_connected_layer(input, hidden_num, name='fully_connected_layer', activation=None):
-        with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-            layer_output = tf.layers.dense(input, hidden_num)
+        with tf.compat.v1.variable_scope(name, reuse=tf.compat.v1.AUTO_REUSE):
+            layer_output = tf.compat.v1.layers.dense(input, hidden_num)
             if activation is None:
                 layer_output = tf.contrib.layers.batch_norm(layer_output,
                                                             center=True,
@@ -133,7 +133,7 @@ class MotionVaeEncoder(object):
     #     return decoder_layer1_output
 
     def sample(self, mu, log_sigma):
-        eps = tf.random_normal(tf.shape(mu), dtype=tf.float32, mean=0., stddev=1.0,
+        eps = tf.random.normal(tf.shape(input=mu), dtype=tf.float32, mean=0., stddev=1.0,
                                name='epsilon')
         return mu + tf.exp(log_sigma / 2) * eps
 
@@ -164,10 +164,10 @@ class MotionVaeEncoder(object):
                                                            activation=None)
         return decoder_1
 
-    def create_model(self, reuse=tf.AUTO_REUSE):
-        with tf.variable_scope(self.name, reuse):
-            self.input = tf.placeholder(dtype=tf.float32, shape=(None, self.input_dims))
-            self.latent_input = tf.placeholder(dtype=tf.float32, shape=(None, self.npc))
+    def create_model(self, reuse=tf.compat.v1.AUTO_REUSE):
+        with tf.compat.v1.variable_scope(self.name, reuse):
+            self.input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, self.input_dims))
+            self.latent_input = tf.compat.v1.placeholder(dtype=tf.float32, shape=(None, self.npc))
             ### initialize encoder
             z_mu, z_log_sigma = self.encode(self.input)
             ### create new sample
@@ -178,22 +178,22 @@ class MotionVaeEncoder(object):
             decoder_1 = self.decode(self.z_op)
 
             ### loss is the sum or reconstruction error and KL distance between normal distribution and mapped distribution
-            reconstruction_loss = self.input_dims * tf.reduce_mean(tf.pow(decoder_1 - self.input, 2))
+            reconstruction_loss = self.input_dims * tf.reduce_mean(input_tensor=tf.pow(decoder_1 - self.input, 2))
             # kl_divergence_loss = tf.reduce_mean(-0.5 * tf.reduce_sum(1 + z_log_sigma - tf.square(mean_encoder_6) - tf.exp(z_log_sigma), 1))
             # reconstruction_loss = tf.reduce_sum(tf.nn.sigmoid_cross_entropy_with_logits(logits=decoder_1, labels=self.input), 1)
-            kl_divergence_loss = -0.5 * tf.reduce_sum(1 + z_log_sigma - tf.square(z_mu) - tf.exp(z_log_sigma), 1)
+            kl_divergence_loss = -0.5 * tf.reduce_sum(input_tensor=1 + z_log_sigma - tf.square(z_mu) - tf.exp(z_log_sigma), axis=1)
             # self.mean_op = z_mu
             # self.variance_op = z_log_sigma
 
-            self.cost = tf.reduce_mean(reconstruction_loss + kl_divergence_loss)
+            self.cost = tf.reduce_mean(input_tensor=reconstruction_loss + kl_divergence_loss)
             # self.cost = reconstruction_loss
             self.reconstruction_loss_op = reconstruction_loss
             self.kl_divergence_loss_op = kl_divergence_loss
             self.decoder_op = self.decode(self.latent_input)
 
-            self.model_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.name)
+            self.model_params = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope=self.name)
 
-            self.saver = tf.train.Saver(self.model_params)
+            self.saver = tf.compat.v1.train.Saver(self.model_params)
 
     def get_params(self):
         return self.model_params
@@ -214,9 +214,9 @@ class MotionVaeEncoder(object):
         return self.sess.run(self.decoder_op, feed_dict={self.latent_input: latent_value})
 
     def train(self, training_data, learning_rate=0.01, pre_train=True):
-        self.optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+        self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
         train_op = self.optimizer.minimize(self.cost)
-        self.sess.run(tf.global_variables_initializer())
+        self.sess.run(tf.compat.v1.global_variables_initializer())
         n_samples, input_dims = training_data.shape
         last_mean = 0
 
