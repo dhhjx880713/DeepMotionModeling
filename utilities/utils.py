@@ -1,10 +1,14 @@
 import tensorflow as tf 
 import copy
+import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/..')
 from mosi_utils_anim.utilities import write_to_json_file
 from .quaternions import Quaternions
 import numpy as np
 import collections
+import glob
+import os
 
 
 GAME_ENGINE_SKELETON = collections.OrderedDict(
@@ -86,7 +90,7 @@ def convert_anim_to_point_cloud_tf(anim):
     return export_joints
 
 
-def export_point_cloud_data_without_foot_contact(motion_data, filename=None):
+def export_point_cloud_data_without_foot_contact(motion_data, filename=None, skeleton=GAME_ENGINE_SKELETON):
     '''
     
     :param motion_data: n_frames * n_dims 
@@ -109,7 +113,7 @@ def export_point_cloud_data_without_foot_contact(motion_data, filename=None):
     if filename is None:
         return joints
     else:
-        save_data = {'motion_data': joints.tolist(), 'has_skeleton': True, 'skeleton': GAME_ENGINE_SKELETON}
+        save_data = {'motion_data': joints.tolist(), 'has_skeleton': True, 'skeleton': skeleton}
         write_to_json_file(filename, save_data)
 
 
@@ -148,3 +152,9 @@ def combine_motion_clips(clips, motion_len, window_step):
         right_index = window_size - (window_size - residue_frames) // 2
         combined_frames = np.concatenate((combined_frames, clips[-2, left_index:right_index]), axis=0)
         return combined_frames
+
+
+def get_files(dir, suffix='.bvh', files=[]):
+    files += glob.glob(os.path.join(dir, '*'+suffix))
+    for subdir in next(os.walk(dir))[1]:
+        get_files(os.path.join(dir, subdir), suffix, files)

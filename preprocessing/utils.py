@@ -4,7 +4,10 @@ import os
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/..')
+from mosi_utils_anim.animation_data.utils import get_rotation_angle
+from mosi_utils_anim.animation_data.body_plane import BodyPlane
 from pfnn.quaternions import Quaternions
+from transformations import euler_matrix
 
 
 def estimate_floor_height(foot_heights):
@@ -82,12 +85,50 @@ def combine_motion_clips(clips, motion_len, window_step):
         return combined_frames
 
 
-def visualize_pfnn_X():
-    pass
+def rotate_cartesian_frames_to_ref_dir(cartesian_frames, ref_dir, body_plane_indices, up_axis):
+    '''
+    rotation is assumed only about vertical axis
+    :param cartesian_frames: n_frames * n_joints * 3
+    :param ref_dir: 3d array
+    :param body_plane_indices: 3d array (indices of three joints)
+    :param up_axis: 3d array
+    :return:
+    '''
+    n_frames, n_joints, n_dims = cartesian_frames.shape
+    forward_dir = cartesian_pose_orientation(cartesian_frames[0], body_plane_indices, up_axis)
+    axis_indice = np.where(up_axis==0)
+    angle = np.deg2rad(get_rotation_angle(forward_dir[axis_indice], ref_dir[axis_indice]))
+    rotmat = euler_matrix(0, -angle, 0, 'rxyz')
+    ones = np.ones((n_frames, n_joints, 1))
+    extended_cartesian_frames = np.concatenate((cartesian_frames, ones), axis=-1)
+    extended_cartesian_frames = np.transpose(extended_cartesian_frames, (0, 2, 1))
+    rotated_cartesian_frames = np.matmul(rotmat, extended_cartesian_frames)
+    return np.transpose(rotated_cartesian_frames, (0, 2, 1))[:, :, :-1]
 
 
-def visualize_pfnn_Y():
-    pass
+def rotation_cartesian_frames(cartesian_frames, angles):
+    '''
+    A fast version to rotate a list of cartesian frames
+    :param cartesian_frames: n_frames * n_joints * 3
+    :param angles: n_frames * 1
+    :return:
+    '''
+
+    n_frames, n_joints, n_dims = cartesian_frames.shape
+    sin_theta = np.sin(angles)
+    cos_theta = np.cos(angles)
+    rotmat = np.array([cos_theta, np.zeros(n_frames), sin_theta, np.zeros(n_frames), np.zeros(n_frames),
+                       np.ones(n_frames), np.zeros(n_frames), np.zeros(n_frames), -sin_theta, np.zeros(n_frames),
+                       cos_theta, np.zeros(n_frames), np.zeros(n_frames), np.zeros(n_frames), np.zeros(n_frames),
+                       np.ones(n_frames)]).T
+    rotmat = np.reshape(rotmat, (n_frames, 4, 4))
+    ones = np.ones((n_frames, n_joints, 1))
+    extended_cartesian_frames = np.concatenate((cartesian_frames, ones), axis=-1)
+    swapped_cartesian_frames = np.transpose(extended_cartesian_frames, (0, 2, 1))
+    rotated_cartesian_frames = np.matmul(rotmat, swapped_cartesian_frames)
+    return np.transpose(rotated_cartesian_frames, (0, 2, 1))[:, :, :-1]
+
+
 
 
 def covnert_pfnn_preprocessed_data_to_global_joint_positions(motion_data, use_speed=True):
@@ -141,3 +182,14 @@ def covnert_pfnn_preprocessed_data_to_global_joint_positions(motion_data, use_sp
             rotation = Quaternions.from_angle_axis(-root_r[i], np.array([0, 1, 0])) * rotation
             translation = translation + rotation * np.array([root_x[i], 0, root_z[i]])    
     return joints
+
+
+def cartesian_pose_orientation(cartesian_pose, body_plane_index, up_axis):
+    assert len(cartesian_pose.shape) == 2
+    up_axis = np.asarray(up_axis)
+    points = cartesian_pose[body_plane_index, :]
+    body_plane = BodyPlane(points)
+    normal_vec = body_plane.normal_vector
+    normal_vec[np.where(up_axis == 1)] = 0  ### only consider forward direction on the ground
+    return normal_vec/np.linalg.norm(normal_vec)
+
