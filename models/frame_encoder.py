@@ -20,25 +20,26 @@ class FrameEncoder(tf.keras.Model):
                                 'LeftHandFinger1', 'Neck', 'Neck1', 'Head', 'RightShoulder', 'RightArm', 'RightForeArm',
                                 'RightHand', 'RThumb', 'RightFingerBase', 'RightHandFinger1', 'RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase']
         
-        self.encoder_joint_dict = {'torso': ['Hips', 'LowerBack', 'Spine', 'Spine1', 'Neck', 'Neck1', 'Head'],
-                                   'leftArm': ['LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LThumb', 'LeftFingerBase',
-                                               'LeftHandFinger1'],
-                                    'rightArm': ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RThumb', 'RightFingerBase', 'RightHandFinger1'],
-                                    'leftLeg': ['LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase'],
-                                    'rightLeg': ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase']}
+        # self.encoder_joint_dict = {'torso': ['Hips', 'LowerBack', 'Spine', 'Spine1', 'Neck', 'Neck1', 'Head'],
+        #                            'leftArm': ['LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LThumb', 'LeftFingerBase',
+        #                                        'LeftHandFinger1'],
+        #                             'rightArm': ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RThumb', 'RightFingerBase', 'RightHandFinger1'],
+        #                             'leftLeg': ['LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase'],
+        #                             'rightLeg': ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase']}
 
         self.L1_groups = {'torso': ['Hips', 'LowerBack', 'Spine', 'Spine1', 'Neck', 'Neck1', 'Head'],
                           'leftArm': ['LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand', 'LThumb', 'LeftFingerBase', 'LeftHandFinger1'],
                           'rightArm': ['RightShoulder', 'RightArm', 'RightForeArm', 'RightHand', 'RThumb', 'RightFingerBase', 'RightHandFinger1'],
                           'leftLeg': ['LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBase'],
-                          'rightLeg': ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase']}
+                          'rightLeg': ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase'],
+                          'global_trans': ['velocity_x', 'velocity_z', 'velocity_r']}
         self.L2_groups = {'torso_leftArm': ['torso', 'leftArm'],
                           'torso_rightArm': ['torso', 'rightArm'],
                           'torso_leftLeg': ['torso', 'leftLeg'],
                           'torso_rightLeg': ['torso', 'rightLeg']}
         self.L3_groups = {'upper_body': ['torso_leftArm', 'torso_rightArm'],
                           'lower_body': ['torso_leftLeg', 'torso_rightLeg']}
-        self.L4_groups = {'full_body': ['upper_body', 'lower_body']}                                                
+        self.L4_groups = {'full_body': ['upper_body', 'lower_body', 'global_trans']}                                                
 
         self.L1_units = 64
         self.L2_units = 128
@@ -86,15 +87,22 @@ class FrameEncoder(tf.keras.Model):
 
         ### output group ###
         for group in self.L1_groups.keys():
-            self.layers_dict[group + '_output'] = layers.Dense(len(self.encoder_joint_dict[group]) * 3, name=group + '_output')   
+            if group == "global_trans":
+                self.layers_dict[group + '_output'] = layers.Dense(3, name=group + '_output')
+            else:
+                self.layers_dict[group + '_output'] = layers.Dense(len(self.L1_groups[group]) * 3, name=group + '_output')   
 
         self.layers_dict['dropout'] = layers.Dropout(0.25) 
 
     def _encoder(self, inputs, training=False):
 
         for group_name, values in self.L1_groups.items():
-            self.encoder_net[group_name + '_input'] = tf.concat([inputs[:, self.animated_joints.index(joint)*self.num_params_per_joint:
-                                                      (self.animated_joints.index(joint) + 1) * self.num_params_per_joint] for joint in values], axis=-1)
+            ## preparing inputs
+            if group_name == "global_trans":
+                self.encoder_net[group_name + '_input'] = inputs[:, -3:]  ## assume the last three dimensions are global transformation
+            else:
+                self.encoder_net[group_name + '_input'] = tf.concat([inputs[:, self.animated_joints.index(joint)*self.num_params_per_joint:
+                                                          (self.animated_joints.index(joint) + 1) * self.num_params_per_joint] for joint in values], axis=-1)
             self.encoder_net[group_name] = self.layers_dict[group_name](self.encoder_net[group_name + '_input'])                                     
             if training:
                 self.encoder_net[group_name] = self.layers_dict['dropout'](self.encoder_net[group_name], training=training)
@@ -125,7 +133,6 @@ class FrameEncoder(tf.keras.Model):
             if training:
                 self.encoder_net[group_name] = self.layers_dict['dropout'](self.encoder_net[group_name], training=training)
 
-
         ### create hidden representation
         # the input is fixed by the keyword 'full_body'
         self.encoder_net['z_code'] = self.layers_dict['z_layer'](self.encoder_net['full_body'])
@@ -140,8 +147,7 @@ class FrameEncoder(tf.keras.Model):
             self.decoder_net['full_body'] = self.layers_dict['dropout'](self.decoder_net['full_body'])
         
         ### decoder L3 ###
-        # self.decoder_net['upper_body'] = self.layers_dict['upper_body_inverse'](self.decoder_net['full_body'])
-        # self.decoder_net['lower_body'] = self.layers_dict['lower_body_inverse'](self.decoder_net['full_body'])
+
         for group in self.L3_groups.keys():
             ### super group can be more than one
             super_groups = [group_name for group_name, values in self.L4_groups.items() if group in values]
@@ -161,9 +167,12 @@ class FrameEncoder(tf.keras.Model):
 
         ### decoder L1 ###
         for group in self.L1_groups.keys():
-            super_groups = [group_name for group_name, values in self.L2_groups.items() if group in values]
-            layer_input = tf.add_n([self.decoder_net[super_group] for super_group in super_groups])
-            self.decoder_net[group] = self.layers_dict[group+'_inverse'](layer_input)
+            if group == "global_trans":
+                self.decoder_net[group] = self.layers_dict[group+'_inverse'](self.decoder_net['full_body'])
+            else:
+                super_groups = [group_name for group_name, values in self.L2_groups.items() if group in values]
+                layer_input = tf.add_n([self.decoder_net[super_group] for super_group in super_groups])
+                self.decoder_net[group] = self.layers_dict[group+'_inverse'](layer_input)
             if training:
                 self.decoder_net[group] = self.layers_dict['dropout'](self.decoder_net[group])
 
@@ -171,11 +180,12 @@ class FrameEncoder(tf.keras.Model):
 
         for group, joints in self.L1_groups.items():
             self.decoder_net[group + '_output'] = self.layers_dict[group + '_output'](self.decoder_net[group])
-            for joint in joints:
-                self.decoder_net[joint] = self.decoder_net[group + '_output'][:, joints.index(joint) * self.num_params_per_joint : (joints.index(joint) + 1) * self.num_params_per_joint]
+            if group != 'global_trans':
+                for joint in joints:
+                    self.decoder_net[joint] = self.decoder_net[group + '_output'][:, joints.index(joint) * self.num_params_per_joint : (joints.index(joint) + 1) * self.num_params_per_joint]
         ### reorder 
         output = tf.concat([self.decoder_net[joint] for joint in self.animated_joints], axis=-1)
-
+        output = tf.concat([output, self.decoder_net['global_trans_output']], axis=-1)
         return output
             
     def call(self, inputs, training=False):

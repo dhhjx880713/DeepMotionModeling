@@ -23,8 +23,7 @@ def train_frameEncoder():
     frame_encoder.compile(optimizer=optimizers.Adam(learning_rate),
                           loss='mse',
                           metrics=['accuracy'])
-    checkpoint_path = r'../../data/models/frame_encoder-{epoch:04d}.ckpt'
-    checkpoint_dir = os.path.dirname(checkpoint_path)
+    checkpoint_path = r'../../data/models/frame_encoder/frame_encoder' + '-' + str(epochs) + '-' + str(learning_rate) '-{epoch:04d}.ckpt'
 
     cp_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_path, 
@@ -32,7 +31,7 @@ def train_frameEncoder():
         save_weights_only=True,
         period=10)
     frame_encoder.save_weights(checkpoint_path.format(epoch=0))
-    frame_encoder.fit(input_data, input_data[:, :-3], epochs=epochs, batch_size=batchsize, callbacks=[cp_callback])
+    frame_encoder.fit(input_data, input_data, epochs=epochs, batch_size=batchsize, callbacks=[cp_callback])
 
 
 def run_frameEncoder():
@@ -47,7 +46,7 @@ def run_frameEncoder():
                           metrics=['accuracy'])
     frame_encoder.build(input_shape=input_data.shape)
 
-    checkpoint_path = r'../../data/models/frame_encoder-{epoch:04d}.ckpt'
+    checkpoint_path = r'../../data/models/frame_encoder/frame_encoder-{epoch:04d}.ckpt'
     checkpoint_dir = os.path.dirname(checkpoint_path)
     latest = tf.train.latest_checkpoint(checkpoint_dir)
     frame_encoder.load_weights(latest)
@@ -64,5 +63,5 @@ def run_frameEncoder():
 
 
 if __name__ == "__main__":
-    run_frameEncoder()
-    # train_frameEncoder())
+    # run_frameEncoder()
+    train_frameEncoder()
