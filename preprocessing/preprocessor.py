@@ -1,6 +1,9 @@
 import numpy as np
 import glob
 import os
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/..')
 from mosi_utils_anim.animation_data import BVHReader, SkeletonBuilder, BVHWriter
 from mosi_utils_anim.animation_data.utils import convert_euler_frames_to_cartesian_frames, rotate_euler_frames
 from preprocessing.utils import estimate_floor_height

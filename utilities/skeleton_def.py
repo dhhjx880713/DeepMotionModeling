@@ -23,7 +23,9 @@ MH_CMU_ANIMATED_JOINTS = ['Hips', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'LeftToeBa
                           'LeftHandFinger1', 'Neck', 'Neck1', 'Head', 'RightShoulder', 'RightArm', 'RightForeArm',
                           'RightHand', 'RThumb', 'RightFingerBase', 'RightHandFinger1', 'RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase']
 
-MH_CMU_SKELETON = collections.OrderedDict(
+
+### LHipJoint and RHipJoint are removed since their body length are 0
+MH_CMU_SKELETON = collections.OrderedDict(  
     [
         ('Hips', {'parent': None, 'index': 0}),
         ('LeftUpLeg', {'parent': 'Hips', 'index': 1}),
@@ -56,6 +58,45 @@ MH_CMU_SKELETON = collections.OrderedDict(
         ('RightToeBase', {'parent': 'RightFoot', 'index': 28})
     ]
 )
+
+
+MH_CMU_SKELETON_FULL = collections.OrderedDict(  
+    [
+        ('Hips', {'parent': None, 'index': 0}),
+        ('LHipJoint', {'parent': 'Hips', 'index': 1}),  
+        ('LeftUpLeg', {'parent': 'Hips', 'index': 2}),
+        ('LeftLeg', {'parent': 'LeftUpLeg', 'index': 3}),
+        ('LeftFoot', {'parent': 'LeftLeg', 'index': 4}),
+        ('LeftToeBase', {'parent': 'LeftFoot', 'index': 5}),
+        ('LowerBack', {'parent': 'Hips', 'index': 6}),
+        ('Spine', {'parent': 'LowerBack', 'index': 7}),
+        ('Spine1', {'parent': 'Spine', 'index': 8}),
+        ('LeftShoulder', {'parent': 'Spine1', 'index': 9}),
+        ('LeftArm', {'parent': 'LeftShoulder', 'index': 10}),
+        ('LeftForeArm', {'parent': 'LeftArm', 'index': 11}),
+        ('LeftHand', {'parent': 'LeftForeArm', 'index': 12}),
+        ('LThumb', {'parent': 'LeftHand', 'index': 13}),
+        ('LeftFingerBase', {'parent': 'LeftHand', 'index': 14}),
+        ('LeftHandFinger1', {'parent': 'LeftFingerBase', 'index': 15}),
+        ('Neck', {'parent': 'Spine1', 'index': 16}),
+        ('Neck1', {'parent': 'Neck', 'index': 17}),
+        ('Head', {'parent': 'Neck1', 'index': 18}),
+        ('RightShoulder', {'parent': 'Spine1', 'index': 19}),
+        ('RightArm', {'parent': 'RightShoulder', 'index': 20}),
+        ('RightForeArm', {'parent': 'RightArm', 'index': 21}),
+        ('RightHand', {'parent': 'RightForeArm', 'index': 22}),
+        ('RThumb', {'parent': 'RightHand', 'index': 23}),
+        ('RightFingerBase', {'parent': 'RightHand', 'index': 24}),
+        ('RightHandFinger1', {'parent': 'RightFingerBase', 'index': 25}),
+        ('RHipJoint', {'parent': 'Hips', 'index': 26}),  # 5
+        ('RightUpLeg', {'parent': 'Hips', 'index': 27}),
+        ('RightLeg', {'parent': 'RightUpLeg', 'index': 28}),
+        ('RightFoot', {'parent': 'RightLeg', 'index': 29}),
+        ('RightToeBase', {'parent': 'RightFoot', 'index': 30})
+    ]
+)
+
+
 
 
 GAME_ENGINE_SKELETON = collections.OrderedDict(

@@ -5,7 +5,7 @@ sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/..')
 from mosi_utils_anim.animation_data import BVHReader, Skeleton, SkeletonBuilder
 from mosi_utils_anim.animation_data.utils import convert_euler_frames_to_cartesian_frames, \
     convert_quat_frames_to_cartesian_frames, get_rotation_angles_for_vectors, \
-    pose_orientation_euler, rotate_around_y_axis
+    pose_orientation_euler
 from preprocessing.utils import rotate_cartesian_frames_to_ref_dir, cartesian_pose_orientation, rotation_cartesian_frames
 from mosi_utils_anim.animation_data.quaternion import Quaternion
 import numpy as np
@@ -199,6 +199,8 @@ def process_bvhfile(filename,
     print(filename)
     bvhreader = BVHReader(filename)
     skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
+    if animated_joints is None:
+        animated_joints = skeleton.animated_joints
     ref_dir = np.array([0, 0, 1])
     up_axis = np.array([0, 1, 0])
     cartesian_frames = convert_euler_frames_to_cartesian_frames(skeleton, bvhreader.frames,
@@ -563,7 +565,10 @@ def run_preprocessing(data_folder, save_folder, sliding_window=False, window=240
 
         clip = process_file(bvhfile, sliding_window=sliding_window, window=window, window_step=window_step,
                             body_plane_indices=body_plane_indices, fid_l=foot_left, fid_r=foot_right, animated_joints=animated_joints)
-        clips += clip.tolist()
+        if not sliding_window:
+            clips += clip.tolist()
+        else:
+            clips += clip
     clips = np.array(clips)
     if suffix != '':
         save_filename = os.path.split(data_folder)[-1] + '_' + suffix

@@ -9,33 +9,7 @@ import numpy as np
 import collections
 import glob
 import os
-
-
-GAME_ENGINE_SKELETON = collections.OrderedDict(
-    [
-        ('Root', {'parent': None, 'index': 0}),  #-1
-        ('pelvis', {'parent': 'Root', 'index': 1}),  # 0
-        ('spine_03', {'parent': 'pelvis', 'index': 2}),   # 1
-        ('clavicle_l', {'parent': 'spine_03', 'index': 3}), # 2
-        ('upperarm_l', {'parent': 'clavicle_l', 'index': 4}), # 3
-        ('lowerarm_l', {'parent': 'upperarm_l', 'index': 5}), # 4
-        ('hand_l', {'parent': 'lowerarm_l', 'index': 6}),  # 5
-        ('clavicle_r', {'parent': 'spine_03', 'index': 7}), # 2
-        ('upperarm_r', {'parent': 'clavicle_r', 'index': 8}), # 7
-        ('lowerarm_r', {'parent': 'upperarm_r', 'index': 9}), # 8
-        ('hand_r', {'parent': 'lowerarm_r', 'index': 10}),
-        ('neck_01', {'parent': 'spine_03', 'index': 11}),
-        ('head', {'parent': 'neck_01', 'index': 12}),
-        ('thigh_l', {'parent': 'pelvis', 'index': 13}),
-        ('calf_l', {'parent': 'thigh_l', 'index': 14}),
-        ('foot_l', {'parent': 'calf_l', 'index': 15}),
-        ('ball_l', {'parent': 'foot_l', 'index': 16}),
-        ('thigh_r', {'parent': 'pelvis', 'index': 17}),
-        ('calf_r', {'parent': 'thigh_r', 'index': 18}),
-        ('foot_r', {'parent': 'calf_r', 'index': 19}),
-        ('ball_r', {'parent': 'foot_r', 'index': 20})
-    ]
-)
+from .skeleton_def import MH_CMU_SKELETON, GAME_ENGINE_SKELETON
 
 
 def gram_matrix(X):
@@ -90,7 +64,7 @@ def convert_anim_to_point_cloud_tf(anim):
     return export_joints
 
 
-def export_point_cloud_data_without_foot_contact(motion_data, filename=None, skeleton=GAME_ENGINE_SKELETON):
+def export_point_cloud_data_without_foot_contact(motion_data, filename=None, skeleton=MH_CMU_SKELETON, scale_factor=1):
     '''
     
     :param motion_data: n_frames * n_dims 
@@ -110,6 +84,7 @@ def export_point_cloud_data_without_foot_contact(motion_data, filename=None, ske
         rotation = Quaternions.from_angle_axis(-root_r[i], np.array([0, 1, 0])) * rotation
         # offsets.append(rotation * ref_dir)
         translation = translation + rotation * np.array([root_x[i], 0, root_z[i]])
+    joints *= scale_factor
     if filename is None:
         return joints
     else:

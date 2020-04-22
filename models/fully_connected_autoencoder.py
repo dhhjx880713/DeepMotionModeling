@@ -5,6 +5,7 @@ from datetime import datetime
 import sys
 from mosi_utils_anim.utilities import write_to_json_file
 rng = np.random.RandomState(23456)
+tf.compat.v1.disable_eager_execution()
 
 
 class FullyConnectedEncoder(object):

@@ -27,6 +27,12 @@ save_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn\network_pa
 if not os.path.exists(save_path):
     os.makedirs(save_path)
 
+#################################################################################
+## X: 342 = 12 + 12 + 12 + 12 + 12*6 (gait style) + 31 * 3 + 31 * 3 + 36 (height)
+## Trajectory Past Positions, Trajectory Future Positions, Trajectory Past Directions, Trajectory Future Directions, Trajectory Gait, relative position, relative velocity
+## Y: 311 = 4 + 4 + 24 + 31 * 3 * 3
+#################################################################################
+
 X = database['Xun'].astype(theano.config.floatX)
 Y = database['Yun'].astype(theano.config.floatX)
 P = database['Pun'].astype(theano.config.floatX)

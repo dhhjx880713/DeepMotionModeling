@@ -551,5 +551,5 @@ def process_data(global_positions, phase, gait, type='flat', scale=False):
 
 
 if __name__ == "__main__":
-    data_folder = r'D:\workspace\mocap_data\mk_cmu_retargeting_default_pose\pfnn_data'
+    data_folder = r'E:\workspace\mocap_data\mk_cmu_retargeting_default_pose\pfnn_data'
     generate_database(data_folder, scale=False, save_filename='mk_cmu_database.npz')

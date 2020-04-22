@@ -24,6 +24,7 @@ def get_training_data(training_data_path, meta_data_path=None, save_path=None):
     X = training_data['Xun']
     Y = training_data['Yun']
     P = training_data['Pun']
+
     if meta_data_path is None:
         """ Calculate Mean and Std """
 
@@ -90,20 +91,22 @@ def get_training_data(training_data_path, meta_data_path=None, save_path=None):
 
     
 def train_pfnn():
-    training_data_path = r'./mk_cmu_database.npz'
+    # training_data_path = r'./mk_cmu_database.npz'
+    training_data_path = r'D:\workspace\tags\tagged_data\PFNN\training_data\mk_cmu_database.npz'
     meta_data_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn\network_parameters\no_local_rot'
     save_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn'
 
     input_data, output_data = get_training_data(training_data_path, meta_data_path, save_path)
-    n_controls = 4
-    batchsize = 256
-    dropout = 0.7
-    model = PFNN(n_controls, input_data.shape[1], output_data.shape[1], dropout, batchsize)
-    model.create_model()
-    print("training start")
-    model.train(input_data, output_data, n_epoches=10)
-    model.save_model(r'trained_models/pfnn_no_rot_256.ckpt')
-    # model.save_params()
+
+    # n_controls = 4
+    # batchsize = 256
+    # dropout = 0.7
+    # model = PFNN(n_controls, input_data.shape[1], output_data.shape[1], dropout, batchsize)
+    # model.create_model()
+    # print("training start")
+    # model.train(input_data, output_data, n_epoches=10)
+    # model.save_model(r'trained_models/pfnn_no_rot_256.ckpt')
+    # # model.save_params()
 
 
 def finetune_pfnn():
@@ -138,5 +141,5 @@ def finetune_pfnn():
 
 
 if __name__ == "__main__":
-    # train_pfnn()
-    finetune_pfnn()
+    train_pfnn()
+    # finetune_pfnn()

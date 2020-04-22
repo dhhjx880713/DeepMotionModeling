@@ -6,13 +6,12 @@ tf.keras.backend.set_floatx('float64')
 
 class FullBodyPoseEncoder(tf.keras.Model):
 
-    def __init__(self, output_dim, activation=tf.nn.elu):
+    def __init__(self, output_dim, dropout_rate=0.3, npc=10, activation=tf.nn.elu):
         super(FullBodyPoseEncoder, self).__init__()
-        self.z_units = 10
         self.L1_units = 512
         self.L2_units = 256
         self.L3_units = 128
-        self.L4_units = 64
+        self.L4_units = npc
         self.activation = activation
         self.output_dim = output_dim
         self.L1 = layers.Dense(self.L1_units, activation=self.activation, name='layer1')
@@ -24,7 +23,7 @@ class FullBodyPoseEncoder(tf.keras.Model):
         self.L4 = layers.Dense(self.L4_units, activation=self.activation, name='layer4')
         self.L4_inverse = layers.Dense(self.L4_units, activation=self.activation, name='layer4_inverse')
         self.output_layer = layers.Dense(self.output_dim, name='output_layer')
-        self.dropout = layers.Dropout(rate=0.25)
+        self.dropout = layers.Dropout(rate=dropout_rate)
         return
 
     def encode(self, inputs, training=None):

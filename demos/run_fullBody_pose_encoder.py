@@ -11,7 +11,12 @@ from tensorflow.keras import Sequential, layers, Model, optimizers, losses
 import tensorflow as tf 
 from utilities.utils import export_point_cloud_data_without_foot_contact
 from utilities.skeleton_def import MH_CMU_SKELETON
+import time
 import copy
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
+from sklearn.decomposition import PCA
 EPS = 1e-6
 
 
@@ -73,7 +78,7 @@ def run_fullBody_pose_encoder():
     learning_rate = 1e-3
     epochs = 100
     batchsize = 256
-
+    scale_factor = 5
     pose_encoder = FullBodyPoseEncoder(output_dim=normalized_data.shape[1])    
     pose_encoder.compile(optimizer=optimizers.Adam(learning_rate),
                          loss='mse',
@@ -90,15 +95,42 @@ def run_fullBody_pose_encoder():
 
     frame_num = 1000
     ref = motion_data[:frame_num, :]
+    encodered_data = np.asarray(pose_encoder.encode(normalized_data[:frame_num, :]))
+    print(encodered_data.shape)
     res = np.asarray(pose_encoder(normalized_data[:frame_num, :]))
     res = res * std_value + mean_value   
     output_folder = r'../../data/test_data/fullBody_pose_encoder'
     if not os.path.exists(output_folder):
         os.makedirs(output_folder) 
-    export_point_cloud_data_without_foot_contact(ref, filename= os.path.join(output_folder, 'ref.panim'), skeleton=MH_CMU_SKELETON)
-    export_point_cloud_data_without_foot_contact(res, filename= os.path.join(output_folder, 'reconstructed.panim'), skeleton=MH_CMU_SKELETON)
+    timestr = time.strftime("%Y%m%d-%H%M%S")
+    export_point_cloud_data_without_foot_contact(ref, filename= os.path.join(output_folder, 'ref_' + timestr + '.panim'), skeleton=MH_CMU_SKELETON, scale_factor=scale_factor)
+    export_point_cloud_data_without_foot_contact(res, filename= os.path.join(output_folder, 'reconstructed_' + timestr + '.panim'), skeleton=MH_CMU_SKELETON, scale_factor=scale_factor)
+
+    # ## visualize motion sequence in manifold
+    # # manifold_embedded = TSNE(n_components=3).fit_transform(encodered_data)
+    # manifold_embedded = PCA(n_components=3).fit_transform(encodered_data)
+    # print(manifold_embedded.shape)
+
+    # fig = plt.figure()
+    # ax = plt.axes(projection='3d')
+    # ax.scatter3D(manifold_embedded[:, 0], manifold_embedded[:, 1], manifold_embedded[:, 2])
+
+    # plt.show()
+
+
+    #### quantative evaluation 
+    frames = [10, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
+    ref_frames = export_point_cloud_data_without_foot_contact(ref)
+    res_frames = export_point_cloud_data_without_foot_contact(res)
+    errors = []
+    for frame_index in frames:
+        mse = np.sum((ref_frames[:frame_index] - res_frames[:frame_index]) ** 2) / frame_index
+        errors.append(mse)
+    fig = plt.figure()
+    plt.plot(range(len(errors)), errors)
+    plt.show()
 
 
 if __name__ == "__main__":
-    # train_fullBody_pose_encoder()
-    run_fullBody_pose_encoder()
+    train_fullBody_pose_encoder()
+    # run_fullBody_pose_encoder()
