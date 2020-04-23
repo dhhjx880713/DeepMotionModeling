@@ -92,6 +92,19 @@ def export_point_cloud_data_without_foot_contact(motion_data, filename=None, ske
         write_to_json_file(filename, save_data)
 
 
+def reconstruct_global_position(motion_data):
+    """
+    
+    Arguments:
+        motion_data {numpy.array} -- n_frames * n_dims
+    """
+    relative_positions, root_x, root_z, root_r = motion_data[:, :-3], motion_data[:, -3], motion_data[:, -2], motion_data[:, -1]
+    n_frames = len(relative_positions)
+    relative_positions = relative_positions.reshape(n_frames)
+    for i in range(n_frames):
+        
+
+
 def combine_motion_clips(clips, motion_len, window_step):
     '''
     
