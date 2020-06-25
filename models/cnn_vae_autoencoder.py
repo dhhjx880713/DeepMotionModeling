@@ -171,8 +171,8 @@ class MotionVaeEncoder(object):
             ### initialize encoder
             z_mu, z_log_sigma = self.encode(self.input)
             ### create new sample
-            # self.z_op = self.sample(z_mu, z_log_sigma)
-            self.z_op = z_mu
+            self.z_op = self.sample(z_mu, z_log_sigma)
+            # self.z_op = z_mu
             ### initialize decoder
             # decoder_1 = self.decode_data(self.z_op, reuse)
             decoder_1 = self.decode(self.z_op)
