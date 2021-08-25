@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/../..')
 from mosi_utils_anim.utilities import load_json_file
 from mosi_utils_anim.animation_data.body_plane import BodyPlane
 from mosi_utils_anim.animation_data import BVHReader, SkeletonBuilder, BVHWriter
-from mosi_utils_anim.animation_data.retargeting.directional_constraints_retargeting import align_ref_frame, retarget_motion
+from mosi_utils_anim.retargeting.directional_constraints_retargeting import align_ref_frame, retarget_motion
 
 
 JOINTMAPPING= {
@@ -93,14 +93,13 @@ def convert_panim_to_bvh(panim_data, bvh_skeleton_file, save_filename,
     print(motion_data.shape)
     skeleton_data = panim_data['skeleton']
     # body_plane_joints = ['thigh_r', 'Root', 'thigh_l']
-    body_plane_joints = ['RightUpLeg', 'Hips', 'LeftUpLeg']
+    # body_plane_joints = ['RightUpLeg', 'Hips', 'LeftUpLeg']
     motion_data = np.asarray(motion_data)
-    # print(skeleton_data)
     targets = create_direction_constraints_from_panim(skeleton_data, motion_data, body_plane_joints)
     n_frames = motion_data.shape[0]
     out_frames = []
     # root_joint = 'pelvis'
-    root_joint = 'Hips'
+    # root_joint = 'Hips'
     # root_index = skeleton_data['pelvis']['index']
     # root_index = skeleton_data[root_joint]['index']
     root_index = next(item['index'] for item in skeleton_data if item['name'] == root_joint)
@@ -281,6 +280,7 @@ def create_direction_constraints_from_panim(target_skeleton_data, motion_data, b
     """
     ## find directional vector from parent joint to child joint
     n_frames, n_joints, _ = motion_data.shape
+
     targets = []
     if isinstance(target_skeleton_data, list):
         if JOINT_MAPPING is not None:  ## the motion_data contains the source skeleton joint positions
@@ -411,7 +411,7 @@ def convert_style_transfer_data_to_bvh():
 
 
 if __name__ == "__main__":
-    panim_data = load_json_file(r'E:\workspace\projects\cGAN\test_ouptut\panim\reconstruction\Female1_B02_WalkToStandT2.panim')
+    panim_data = load_json_file(r'D:\workspace\projects\cGAN\test_ouptut\panim\reconstruction\Female1_B02_WalkToStandT2.panim')
     target_skeleton_file = r'E:\workspace\mocap_data\skeleton_template\mk_cmu_skeleton.bvh'
-    save_dir = r'E:\workspace\projects\cGAN\test_ouptut\panim\reconstruction\reconstructed.bvh'
+    save_dir = r'D:\workspace\projects\cGAN\test_ouptut\panim\reconstruction\reconstructed.bvh'
     convert_panim_to_bvh(panim_data, target_skeleton_file, save_dir)

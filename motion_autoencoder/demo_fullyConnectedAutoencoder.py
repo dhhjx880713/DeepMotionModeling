@@ -13,8 +13,13 @@ from preprocessing.utils import sliding_window, combine_motion_clips
 
 
 
+def pca_on_heterogeneous_data():
+    
+
+
+
 def demo_fullyConnectedEncoder():
-    input_data = np.load(r'./data/training_data/cmu_skeleton/ulm.npz')['clips']
+    input_data = np.load(r'D:\workspace\my_git_repos\deepMotionSynthesis\data\training_data\cmu_skeleton/ulm.npz')['clips']
     reshaped_input_data = np.reshape(input_data, (input_data.shape[0], input_data.shape[1], np.prod(input_data.shape[2:])))
     n_samples, n_frames, n_dims = reshaped_input_data.shape
     Xmean = reshaped_input_data.mean(axis=1).mean(axis=0)[np.newaxis, np.newaxis, :]
@@ -22,7 +27,7 @@ def demo_fullyConnectedEncoder():
     normalized_data = (reshaped_input_data - Xmean) / Xstd
 
     input_2d = np.reshape(normalized_data, (normalized_data.shape[0], np.prod(normalized_data.shape[1:])))
-    
+    print("input data shape: ", input_2d.shape)
     learning_rate = 0.01
     n_epochs = 1000
     print(input_2d.shape)
@@ -35,7 +40,8 @@ def demo_fullyConnectedEncoder():
     save_folder = r'./data/experiment_results'
     filename = '_'.join(['fullyConnectedEncoder_pretrain', str(learning_rate), str(n_epochs)])
     # encoder.save_model(os.path.join(save_folder, filename))
-    encoder.load_model(os.path.join(save_folder, filename))
+    # encoder.load_model(os.path.join(save_folder, filename))
+    encoder.load_model(r'D:\workspace\my_git_repos\deepMotionSynthesis\data\experiment_results\fullyConnectedEncoder_pretrain_0.01_1000')
     backprojection = encoder(input_2d)
     print(backprojection.shape)
     pca_error = np.mean((input_2d - backprojection)**2)
@@ -46,12 +52,13 @@ def demo_fullyConnectedEncoder():
 
 def pca_evaluation():
     ## load data
-    str(Path(__file__).parent.absolute())
-    data_path = r'./data/training_data/cmu_skeleton'
+    dirname = os.path.abspath(os.path.dirname(__file__))
+
+    data_path = os.path.join(dirname, r'../data/training_data/cmu_skeleton')
     # datasets = ['h36m', 'pfnn', 'stylistic_raw', 'ulm']
-    datasets = ['h36m', 'ACCAD']
+    datasets = ['h36m']
     training_data = None
-    save_folder = r'./data/experiment_results'
+    save_folder = os.path.join(dirname, r'../data/experiment_results')
     for dataset in datasets:
         if training_data is None:
             training_data = np.load(os.path.join(data_path, dataset + '.npz'))['clips']
@@ -101,5 +108,5 @@ def pca_evaluation():
 
 
 if __name__ == "__main__":
-    demo_fullyConnectedEncoder()
-    # pca_evaluation()
+    # demo_fullyConnectedEncoder()
+    pca_evaluation()

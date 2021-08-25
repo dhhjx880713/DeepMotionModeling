@@ -76,6 +76,7 @@ def shift_bvhfile_on_the_floor(bvhfile, foot_contact_joints, save_path):
     # global_positions = convert_euler_frames_to_cartesian_frames(skeleton, bvhreader.frames)
     # foot_heights = np.minimum(global_positions[:, fid_l, 1], global_positions[:, fid_r, 1]).min(axis=1)
     # floor_height = softmin(foot_heights, softness=0.5, axis=0)
+    # bvhreader.frames[:, :3] = bvhreader.frames[0, :3]
     new_frames = shift_euler_frames_to_ground(bvhreader.frames, foot_contact_joints, skeleton)
     BVHWriter(os.path.join(save_path, filename), skeleton, new_frames, skeleton.frame_time)
 

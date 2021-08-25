@@ -18,6 +18,8 @@ def download_from_oc(user, pw, src_path, dst_path):
 
 
 def main():
+    """example: python download_data_from_owncloud.py username password
+    """
     parser = argparse.ArgumentParser(description='download data from owncloud.')
     parser.add_argument('user', nargs='?', help='user')
     parser.add_argument('pw', nargs='?', help='pw')

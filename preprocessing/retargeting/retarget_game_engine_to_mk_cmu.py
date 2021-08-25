@@ -3,7 +3,7 @@ import collections
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/../..')
-from mosi_utils_anim.animation_data.retargeting.directional_constraints_retargeting import retarget_motion, \
+from mosi_utils_anim.retargeting.directional_constraints_retargeting import retarget_motion, \
     estimate_scale_factor, retarget_single_motion, create_direction_constraints, align_ref_frame, retarget_folder
 
 
@@ -355,7 +355,7 @@ def retarget_ulm():
     joint_mapping = {y:x for x, y in joint_mapping.items()}
     skeleton_file = r'D:\workspace\mocap_data\skeleton_template\mk_cmu_skeleton.bvh'
     input_path = r'D:\workspace\mocap_data\game_engine_retargeting\ulm_locomotion'
-    output_path = r'D:\workspace\mocap_data\mk_cmu_retargeting_default_pose\sulm_locomotion'
+    output_path = r'D:\workspace\mocap_data\mk_cmu_retargeting_default_pose\ulm_locomotion'
 
     root_joint = "Hips"
     src_body_plane = ['thigh_r', 'Root', 'thigh_l']
@@ -392,4 +392,4 @@ if __name__ == "__main__":
     # retarget_cmu()
     # retarget_edin()
     retarget_style()
-    # retarget_ulm()
+    retarget_ulm()

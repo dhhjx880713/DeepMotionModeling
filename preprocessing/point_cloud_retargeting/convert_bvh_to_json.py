@@ -34,8 +34,11 @@ def convert_bvh_to_unity_json(bvhfile, save_dir=None, scale=1.0):
     mv = MotionVector(skeleton)
     mv.from_bvh_reader(bvhreader)
     motion_json = mv.to_unity_format(scale=scale)
-    output_json = {"skeletonDesc": skeleton_json,
-                   "motion": motion_json}
+    output_json = collections.OrderedDict()
+    # output_json = {"skeletonDesc": skeleton_json,
+    #                "motion": motion_json}
+    output_json['skeletonDesc'] = skeleton_json
+    output_json['motion'] = motion_json
     if save_dir is None:
         save_dir, filename = os.path.split(bvhfile)
     else:
@@ -48,12 +51,11 @@ def convert_bvh_to_unity_point_cloud(bvhfile, save_dir=None):
     skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
     print(skeleton.animated_joints)
     cartesian_frames = convert_euler_frames_to_cartesian_frames(skeleton, bvhreader.frames)
-    print(cartesian_frames.shape)
+    # print(cartesian_frames.shape)
     p_frames = []
     motion_data = {"frames": p_frames}
     
     cartesian_frames *= 0.1
-    print(cartesian_frames[0][:10])
     for frame in cartesian_frames:
         new_frame = {"points": []}
         for point in frame:

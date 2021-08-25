@@ -31,7 +31,7 @@ def get_training_data(name='h36m', data_type='angle'):
 
 def run_fullyBodyPoseEncoder():
     ### angular representation
-    h36m_data = get_training_data()
+    h36m_data = get_training_data(name='h36m', data_type='quaternion')
     h36m_data = np.reshape(h36m_data, (h36m_data.shape[0] * h36m_data.shape[1], h36m_data.shape[2]))
     ###
     mean_value = h36m_data.mean(axis=0)[np.newaxis, :]
@@ -39,19 +39,21 @@ def run_fullyBodyPoseEncoder():
     std_value[std_value<EPS] = EPS
 
     normalized_data = (h36m_data - mean_value) / std_value    
-    # n_frames = len(normalized_data)
-    n_frames, output_dim = normalized_data.shape
-    batchsize = 256
-    n_batches = n_frames // batchsize
+    # # n_frames = len(normalized_data)
+    # n_frames, output_dim = normalized_data.shape
+    # batchsize = 256
+    # n_batches = n_frames // batchsize
 
-    ### reconstruct training data
-    starting_frame = 1000
-    frame_length = 1000
+    # ### reconstruct training data
+    # starting_frame = 1000
+    # frame_length = 1000
     scale_factor = 5
-
+    output_dim = normalized_data.shape[1]
     ### reconstruct bvh file
     test_file = r'E:\workspace\mocap_data\mk_cmu_retargeting_default_pose\h36m\S1\Walking.bvh'
-    input_data = process_bvhfile(test_file, sliding_window=False)
+    filename = os.path.split(test_file)[-1]
+    ##input_data = process_bvhfile(test_file, sliding_window=False)
+    input_data = process_file(test_file, sliding_window=False)
     normalized_input_data = (input_data - mean_value) / std_value
 
     ### meta parameters
@@ -61,7 +63,7 @@ def run_fullyBodyPoseEncoder():
     
     ### load model
     encoder = FullBodyPoseEncoder(output_dim=output_dim, dropout_rate=dropout_rate)
-    model_file = r'E:\results\h36m_fullyBodyPoseEncoder_customized_loss\h36m_fullyBodyPoseEncoder_customized_loss_1000.ckpt'
+    model_file = r'D:\workspace\my_git_repos\vae_motion_modeling\data\models\h36m_fullyConnected\h36m_fullyConnected_0100.ckpt'
     encoder.load_weights(model_file)
 
     # res = encoder(normalized_data[starting_frame : starting_frame + frame_length])
@@ -70,20 +72,26 @@ def run_fullyBodyPoseEncoder():
     ### reconstruct motion
     reconstructed_motion = res * std_value + mean_value
     # reconstructed_motion = reconstructed_motion.numpy()
-    reconstructed_global_position = get_global_position_framewise(reconstructed_motion)
-    reconstructed_global_position *= scale_factor
-    reconstructed_motion_data = {'motion_data': reconstructed_global_position.tolist(), 'has_skeleton': True,
-                                 'skeleton': MH_CMU_SKELETON}    
-    write_to_json_file(r'E:\tmp\recon_fullyBodyPoseEncoder_walk.panim', reconstructed_motion_data)
 
-    ### reconstruct orginal motion
-    reconstructed_origin_motion = normalized_input_data * std_value + mean_value
+    save_path = r'E:\tmp'
+    model_name = os.path.split(model_file)[-1]
+    save_filename = filename[:-4] + '_' + model_name[:-5] + '.panim'
+    save_filename = os.path.join(save_path, save_filename)
+    export_point_cloud_data_without_foot_contact(reconstructed_motion, save_filename, scale_factor=scale_factor)
+    # reconstructed_global_position = get_global_position_framewise(reconstructed_motion)  ## get_global_position_framewise cannot reconstruct global position correctly
+    # reconstructed_global_position *= scale_factor
+    # reconstructed_motion_data = {'motion_data': reconstructed_global_position.tolist(), 'has_skeleton': True,
+    #                              'skeleton': MH_CMU_SKELETON}    
+    # write_to_json_file(r'E:\tmp\recon_fullyBodyPoseEncoder_walk.panim', reconstructed_motion_data)
 
-    reconstructed_global_position = get_global_position_framewise(reconstructed_origin_motion)
-    reconstructed_global_position *= scale_factor
-    reconstructed_motion_data = {'motion_data': reconstructed_global_position.tolist(), 'has_skeleton': True,
-                                 'skeleton': MH_CMU_SKELETON}    
-    write_to_json_file(r'E:\tmp\recon_fullyBodyPoseEncoder_origin.panim', reconstructed_motion_data)
+    # ### reconstruct orginal motion
+    # reconstructed_origin_motion = normalized_input_data * std_value + mean_value
+
+    # reconstructed_global_position = get_global_position_framewise(reconstructed_origin_motion)
+    # reconstructed_global_position *= scale_factor
+    # reconstructed_motion_data = {'motion_data': reconstructed_global_position.tolist(), 'has_skeleton': True,
+    #                              'skeleton': MH_CMU_SKELETON}    
+    # write_to_json_file(r'E:\tmp\recon_fullyBodyPoseEncoder_origin.panim', reconstructed_motion_data)
 
 
 if __name__ == "__main__":

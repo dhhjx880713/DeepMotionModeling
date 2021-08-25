@@ -597,7 +597,7 @@ def point_cloudIK_test():
     :return:
     '''
     # data_file = r'E:\gits\PFNN\data\animations\LocomotionFlat09_000.bvh'
-    data_file = r'E:\workspace\projects\retargeting_experiments\retargeted_results\LocomotionFlat01_000_short.bvh'
+    data_file = r'D:\workspace\projects\retargeting_experiments\retargeted_results\LocomotionFlat01_000_short.bvh'
     dataBVHReader = BVHReader(data_file)
     dataSkeleton = SkeletonBuilder().load_from_bvh(dataBVHReader)
 
@@ -643,7 +643,7 @@ def point_cloudIK_test():
 
     ref_frame = bvhreader.frames[0]
     body_plane = ['LeftUpLeg', 'LowerBack', 'RightUpLeg']
-    panim_ik_engine = PointCouldIK(skeleton, ref_frame, torso_plane=body_plane, debug=False)
+    panim_ik_engine = PointCouldIK(skeleton, ref_frame, torso_plane=body_plane, debug=True)
     output_frames = panim_ik_engine.run(point_cloud)
     save_folder, filename = os.path.split(data_file)
     save_folder = r'E:\workspace\projects\retargeting_experiments\test_data'

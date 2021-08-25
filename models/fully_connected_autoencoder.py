@@ -33,30 +33,20 @@ class FullyConnectedEncoder(object):
         with tf.compat.v1.variable_scope(name, reuse=reuse):
             layer_output = tf.compat.v1.layers.dense(input, hidden_num, reuse=reuse)
             if activation is None:
-                # layer_output = tf.contrib.layers.batch_norm(layer_output,
-                #                                             center=True,
-                #                                             scale=True,
-                #                                             is_training=True,
-                #                                             scope='bn')
+                layer_output = tf.contrib.layers.batch_norm(layer_output,
+                                                            center=True,
+                                                            scale=True,
+                                                            is_training=True,
+                                                            scope='bn')
                 return layer_output
             else:
-                # layer_output = tf.contrib.layers.batch_norm(layer_output,
-                #                                             center=True,
-                #                                             scale=True,
-                #                                             is_training=True,
-                #                                             scope='bn')
+                layer_output = tf.contrib.layers.batch_norm(layer_output,
+                                                            center=True,
+                                                            scale=True,
+                                                            is_training=True,
+                                                            scope='bn')
                 return activation(layer_output)
 
-    # def encode_2layer(self, input):
-    #     encoder_layer1_output = FullyConnectedEncoder.fully_connected_layer(input,
-    #                                                                         hidden_num=1024,
-    #                                                                         name='encoder_layer1',
-    #                                                                         activation=self.encoder_activation)
-    #     encoder_layer2_output = FullyConnectedEncoder.fully_connected_layer(encoder_layer1_output,
-    #                                                                         hidden_num=self.npc,
-    #                                                                         name='encoder_layer2',
-    #                                                                         activation=self.encoder_activation)                                                                        
-    #     return encoder_layer2_output
 
     def encode(self, input):
         encoder_layer1_output = FullyConnectedEncoder.fully_connected_layer(input,
@@ -90,17 +80,7 @@ class FullyConnectedEncoder(object):
                                                                             activation=self.encoder_activation,
                                                                             reuse=self.reuse)
         return encoder_layer6_output
-
-    # def decode_2layer(self, input):
-    #     decoder_layer2_output = FullyConnectedEncoder.fully_connected_layer(input,
-    #                                                                         hidden_num=1024,
-    #                                                                         name='decoder_layer2',
-    #                                                                         activation=self.decoder_activation)
-    #     decoder_layer1_output = FullyConnectedEncoder.fully_connected_layer(decoder_layer2_output,
-    #                                                                         hidden_num=self.input_dim,
-    #                                                                         name='decoder_layer1',
-    #                                                                         activation=None) 
-    #     return decoder_layer1_output                                                                                                                                             
+                                                                                                                                            
 
     def decode(self, input):
         decoder_layer6_output = FullyConnectedEncoder.fully_connected_layer(input,
@@ -134,21 +114,6 @@ class FullyConnectedEncoder(object):
                                                                             activation=None,
                                                                             reuse=self.reuse)
         return decoder_layer1_output
-
-    # def create_model_2layer(self, reuse=tf.AUTO_REUSE):
-    #     with tf.variable_scope(self.name, reuse):
-    #         self.input = tf.placeholder(dtype=tf.float32, shape=(None, self.input_dim))
-    #         self.latent_input = tf.placeholder(dtype=tf.float32, shape=(None, self.npc))
-    #         self.encode_op = self.encode_2layer(self.input)
-    #         decoder_layer1_output = self.decode_2layer(self.encode_op)
-
-    #         self.loss_op = tf.reduce_mean(tf.pow(self.input - decoder_layer1_output, 2))
-
-    #         self.decoder_op = self.decode_2layer(self.latent_input)
-
-    #         self.model_params = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=self.name)
-
-    #         self.saver = tf.train.Saver(self.model_params)
 
 
     def create_model(self):

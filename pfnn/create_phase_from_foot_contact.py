@@ -30,7 +30,7 @@ def create_gait_for_style_file(input_file):
 
 
 def create_gait_files():
-    motion_data_folder = r'D:\workspace\mocap_data\mk_cmu_retargeting_default_pose\style_locomotion\childlike'
+    motion_data_folder = r'E:\workspace\mocap_data\mk_cmu_retargeting_default_pose\style_locomotion\sexy_tmp'
     bvhfiles = glob.glob(os.path.join(motion_data_folder, '*.bvh'))
     for bvhfile in bvhfiles:
         print(bvhfile)
@@ -79,8 +79,9 @@ def create_phase_from_foot_contact(input_file,save_filename):
 
 
 def create_phase_files():
-    motion_data_folder = r'D:\workspace\mocap_data\mk_cmu_retargeting_default_pose\style_locomotion\childlike'
+    motion_data_folder = r'E:\workspace\mocap_data\mk_cmu_retargeting_default_pose\style_locomotion\sexy_tmp'
     bvhfiles = glob.glob(os.path.join(motion_data_folder, '*.bvh'))
+
     for bvhfile in bvhfiles:
         print(bvhfile)
         footsteps_file = bvhfile.replace('.bvh', '_footsteps.txt')
@@ -107,7 +108,8 @@ def mirror_footstep_annotation(input_file):
 
 
 def mirror_footstep_files():
-    input_folder = r'D:\workspace\mocap_data\mk_cmu_retargeting_default_pose\style_locomotion\childlike'
+    # input_folder = r'D:\workspace\mocap_data\mk_cmu_retargeting_default_pose\style_locomotion\childlike'
+    input_folder = r'E:\workspace\mocap_data\mk_cmu_retargeting_default_pose\style_locomotion\sexy_tmp'
     footstep_files = glob.glob(os.path.join(input_folder, '*_footsteps.txt'))
     for f in footstep_files:
         print(f)
@@ -121,7 +123,7 @@ def test():
 
 
 def change_filename_batch():
-    input_folder = r'D:\workspace\mocap_data\mk_cmu_retargeting_default_pose\style_locomotion\childlike'
+    input_folder = r'E:\workspace\mocap_data\mk_cmu_retargeting_default_pose\style_locomotion\sexy_tmp'
     target_files = glob.glob(os.path.join(input_folder, '*.txt'))
     for f in target_files:
         os.rename(f, f.replace('.txt', '_footsteps.txt'))
@@ -144,6 +146,6 @@ if __name__ == "__main__":
     # change_filename_batch()
     # create_phase_files()
     # test1()
-    # create_gait_files()
+    create_gait_files()
     # mirror_footstep_files()
-    rename_mirror_files()
+    # rename_mirror_files()

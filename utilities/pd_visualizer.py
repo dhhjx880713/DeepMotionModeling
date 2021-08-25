@@ -63,7 +63,7 @@ class PointCloudVisualizer(object):
                                     
 
 def test_visualizer():
-    panim_data = load_json_file(r'C:\Users\hadu01\Downloads\bihmpgan_0624\epoch80.panim')
+    panim_data = load_json_file(r'E:\Downloads\bihmpgan_0624\epoch80.panim')
     v = PointCloudVisualizer()
     v.load_panim_data(panim_data)
     v.plot_frames(stride=10, root_offset=[0, 0, -30])

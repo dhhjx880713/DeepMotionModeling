@@ -4,18 +4,20 @@ import numpy as np
 from datetime import datetime
 import sys
 
+from tensorflow.python.keras.backend import dropout
+
 sys.path.append(r'../')
 rng = np.random.RandomState(23456)
 # regularizer = tf.contrib.layers.l2_regularizer(scale=0.01)
 regularizer = None
 from nn.spectrum_pooling import spectrum_pooling_1d
 from nn.unpooling import average_unpooling_1d, spectrum_unpooling_1d
-from .utils import gram_matrix, convert_anim_to_point_cloud_tf
-
+from utilities.utils import gram_matrix, convert_anim_to_point_cloud_tf
+# tf.compat.v1.disable_eager_execution()
 
 class ConvAutoEncoder(object):
     def __init__(self, name, n_frames, n_dims, kernel_size, encode_activation, decode_activation, hidden_units,
-                 pooling, batch_norm=False, edge_padding=True, sess=None):
+                 pooling, dropout_rate=0.25, batch_norm=False, edge_padding=True, sess=None):
 
         self.name = name
         self.n_frames = n_frames
@@ -26,6 +28,7 @@ class ConvAutoEncoder(object):
         self.hidden_units = hidden_units
         self.pooling = pooling
         self.edge_padding = edge_padding
+        self.dropout_rate = dropout_rate
         self.batch_norm = batch_norm
         if sess is not None:
             self.sess = sess
@@ -125,7 +128,8 @@ class ConvAutoEncoder(object):
                                                              activation=self.encode_activation,
                                                              batch_norm=self.batch_norm,
                                                              edge_padding=self.edge_padding,
-                                                             train=train)
+                                                             train=train,
+                                                             dropout_rate=self.dropout_rate)
         return encoder_layer
 
     def decode(self, input, train):
@@ -135,7 +139,8 @@ class ConvAutoEncoder(object):
                                                              kernel_size=self.kernel_size,
                                                              activation=self.decode_activation,
                                                              edge_padding=self.edge_padding,
-                                                             train=train)
+                                                             train=train,
+                                                             dropout_rate=self.dropout_rate)
         return decoder_layer
     
     def apply_FK(self):
@@ -193,14 +198,14 @@ class ConvAutoEncoder(object):
             output_joint_pos = tf.stack(output_joint_pos, axis=0)
             self.loss = tf.reduce_mean(input_tensor=tf.norm(tensor=input_joint_pos - output_joint_pos, axis=-1))
 
-    def train(self, training_data, n_epoches, learning_rate=0.001):
+    def train(self, training_data, n_epochs, learning_rate=0.001):
 
         self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
         train_op = self.optimizer.minimize(self.loss)
         self.sess.run(tf.compat.v1.global_variables_initializer())
         n_samples, n_features, n_frames = training_data.shape
         last_mean = 0
-        for epoch in range(n_epoches):
+        for epoch in range(n_epochs):
             batchinds = np.arange(n_samples // self.batchsize)
             rng.shuffle(batchinds)
             c = []

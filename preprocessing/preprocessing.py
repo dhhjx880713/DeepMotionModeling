@@ -186,15 +186,15 @@ def rotate_cartesian_frame(cartesian_frame, q):
 def process_bvhfile(filename, 
                     window=240, 
                     window_step=120, 
-                    body_plane_indices=None, 
-                    fid_l = np.array([15, 16]),
-                    fid_r = np.array([19, 20]),
+                    body_plane_indices=[7, 25, 1], 
+                    fid_l = np.array([3, 4]),
+                    fid_r = np.array([27, 28]),
                     sliding_window=True,
                     animated_joints=MH_CMU_ANIMATED_JOINTS):
 
     '''
     extract normalized point cloud data from bvh file
-
+    customized preprocessing steps without using quaternion, it requires use convert_anim_to_point_cloud_tf to reconstruct
     '''
     print(filename)
     bvhreader = BVHReader(filename)
@@ -205,7 +205,7 @@ def process_bvhfile(filename,
     up_axis = np.array([0, 1, 0])
     cartesian_frames = convert_euler_frames_to_cartesian_frames(skeleton, bvhreader.frames,
                                                                 animated_joints=animated_joints)
-    cartesian_frames = rotate_cartesian_frames_to_ref_dir(cartesian_frames, ref_dir, body_plane_indices, up_axis)
+    # cartesian_frames = rotate_cartesian_frames_to_ref_dir(cartesian_frames, ref_dir, body_plane_indices, up_axis)
     #### duplicate the first cartesian frame to make sure the output frame length is the same as input
     cartesian_frames = np.concatenate((cartesian_frames[0:1], cartesian_frames), axis=0)
     """ Put on Floor """
@@ -220,7 +220,15 @@ def process_bvhfile(filename,
         forward.append(cartesian_pose_orientation(cartesian_frames[i], body_plane_indices, up_axis))
     forward = np.asarray(forward)
     rotation_angles = get_rotation_angles_for_vectors(forward, ref_dir, up_axis)
+    # rotations = get_rotation_to_ref_direction(forward, ref_dir=ref_dir)
     delta_angles = rotation_angles[1:] - rotation_angles[:-1]
+
+    # """ Get Rotation Velocity """
+    # rotations = get_rotation_to_ref_direction(forward, ref_dir=ref_dir)
+    # r_v = np.zeros(n_frames - 1)
+    # for i in range(n_frames - 1):
+    #     q = rotations[i+1] * (-rotations[i])
+    #     r_v[i] = Quaternion.get_angle_from_quaternion(q, ref_dir)
 
     """ Get Root Velocity """
     velocity = (cartesian_frames[1:, 0:1] - cartesian_frames[:-1, 0:1]).copy()
@@ -247,8 +255,8 @@ def process_bvhfile(filename,
     rotated_v = np.matmul(rotmat, swapped_v_mat)
     rotated_v = np.transpose(rotated_v, (0, 2, 1))
     """ Add Velocity, RVelocity """
-    cartesian_frames = cartesian_frames[:-1]
-    cartesian_frames = cartesian_frames.reshape(len(cartesian_frames), -1)
+    cartesian_frames = cartesian_frames[:-1]  ### remove last frame
+    cartesian_frames = cartesian_frames.reshape(len(cartesian_frames), -1)  ### convert 3d data to 2d
     cartesian_frames = np.concatenate([cartesian_frames, rotated_v[:, :, 0]], axis=-1)
     cartesian_frames = np.concatenate([cartesian_frames, rotated_v[:, :, 2]], axis=-1)
     cartesian_frames = np.concatenate([cartesian_frames, delta_angles[:, np.newaxis]], axis=-1)
@@ -278,7 +286,7 @@ def process_bvhfile(filename,
 
 
 def process_file(filename, window=240, window_step=120, sliding_window=True, animated_joints=MH_CMU_ANIMATED_JOINTS,
-                 body_plane_indices=None, fid_l=[15, 16], fid_r=[19, 20]):
+                 body_plane_indices=[7, 25, 1], fid_l=[3, 4], fid_r=[27, 28]):
     """ Compute joint positions for animated joints """
 
     print(filename)

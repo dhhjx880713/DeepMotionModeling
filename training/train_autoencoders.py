@@ -213,7 +213,7 @@ def train_autoencoder():
                         encode_activation=encode_activation, decode_activation=decode_activation,
                         hidden_units=hidden_units, pooling='average', batch_norm=False)
     m.create_model(batchsize=32)
-    m.train(normalized_X, n_epoches=100)
+    m.train(normalized_X, n_epochs=100)
     # ### create multilayers stride encoder/deconder
     # # encoder_op = motion_encoder_stride_multilayers(input, name='encoder')
     # # decoder_op = motion_decoder_stride2d_multilayers(encoder_op, n_dims, name='decoder')

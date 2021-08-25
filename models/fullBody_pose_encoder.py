@@ -1,7 +1,7 @@
+from numpy.core.defchararray import decode
 import tensorflow as tf 
 from tensorflow.keras import layers, Model
 import numpy as np 
-tf.keras.backend.set_floatx('float64')
 
 
 
@@ -79,7 +79,7 @@ class FullBodyPoseEncoder(tf.keras.Model):
         output = self.output_layer(L1_inverse_res)
         return output    
 
-    def decode(self, inputs, training=None):
+    def decode(self, inputs, training=None, output_numpy=False):
         L4_inverse_res = self.L4_inverse(inputs)
         if training:
             L4_inverse_res = self.dropout(L4_inverse_res)
@@ -101,7 +101,6 @@ class FullBodyPoseEncoder(tf.keras.Model):
         return decoder_value
     
     def __call__(self, inputs, training=None):
-        print("using dropout first!")
         z_encoder = self.encode_dropout_first(inputs, training=training)
         decoder_value = self.decode_dropout_first(z_encoder, training=training)
         return decoder_value

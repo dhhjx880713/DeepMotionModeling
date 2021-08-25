@@ -10,7 +10,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.absolute())+ r'/..')
 from mosi_utils_anim.animation_data import BVHReader, SkeletonBuilder
 from mosi_utils_anim.utilities import write_to_json_file
-from models.fully_connected_autoencoder import FullyConnectedEncoder
 from preprocessing.preprocessing import process_file
 from nn.spectrum_pooling import spectrum_pooling_1d
 from nn.unpooling import spectrum_unpooling_1d, average_unpooling_1d
@@ -330,7 +329,7 @@ def demo_motion_autoencoder_channel_first_without_pooling():
     preprocess = np.load('preprocessed_core_without_pooling.npz')
     # normalized_data = (data - preprocess['Xmean']) / preprocess['Xstd']
 
-    test_file = r'C:\repo\data\1 - MoCap\2.1 - GameSkeleton retargeting\edin\edin_locomotion\locomotion_walk_001_000.bvh'
+    test_file = r'E:\workspace\mocap_data\mk_cmu_retargeting_default_pose\edin\edin_locomotion\locomotion_walk_001_000.bvh'
     test_data = process_file(test_file, sliding_window=False)
     n_frames, n_dims = test_data.shape
     test_data = np.swapaxes(test_data, 0, 1)[np.newaxis, :, :]
@@ -354,7 +353,25 @@ def demo_motion_autoencoder_channel_first_without_pooling():
         export_point_cloud_data(reconstructed_motion, r'E:\tmp\locomotion_walk_001_000_no_pooling.panim')
 
 
+def test():
+    # input_data = np.random.rand(10, 512, 90)
+    # res = motion_encoder_without_pooling(input_data)
+    # print(res.shape)
+    accad_data = np.load(r'D:\workspace\my_git_repos\data\training_data\processed_accad_data.npz')['clips']
+
+    print(accad_data.shape)
+
+
+    ### load pretrained model
+    input = tf.compat.v1.placeholder(tf.float32, [None, n_dims, n_frames])
+    encoder_op = motion_encoder_without_pooling(input)
+    decoder_op = motion_decoder_without_pooling(encoder_op, n_dims)
+    motion_encoder = motion_encoder_without_pooling()
+
+
 
 if __name__ == "__main__":
-    test_file = r'D:\workspace\repo\data\1 - MoCap\2.1 - GameSkeleton retargeting\edin\edin_locomotion\locomotion_jog_000_000.bvh'
-    demo_motion_encoder_single_file(test_file)
+    # test_file = r'D:\workspace\repo\data\1 - MoCap\2.1 - GameSkeleton retargeting\edin\edin_locomotion\locomotion_jog_000_000.bvh'
+    # demo_motion_encoder_single_file(test_file)
+    # test()
+    demo_motion_autoencoder_channel_first_without_pooling()

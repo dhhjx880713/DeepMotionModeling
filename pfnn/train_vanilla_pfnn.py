@@ -4,7 +4,8 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/..')
 from pfnn.pfnn import PFNN
-
+import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 
 
 def get_training_data(training_data_path, meta_data_path=None, save_path=None):
@@ -92,30 +93,33 @@ def get_training_data(training_data_path, meta_data_path=None, save_path=None):
     
 def train_pfnn():
     # training_data_path = r'./mk_cmu_database.npz'
-    training_data_path = r'D:\workspace\tags\tagged_data\PFNN\training_data\mk_cmu_database.npz'
-    meta_data_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn\network_parameters\no_local_rot'
+    # training_data_path = r'D:\workspace\tags\tagged_data\PFNN\training_data\mk_cmu_database.npz'
+    training_data_path = r'D:\workspace\projects\variational_style_simulation\training_data\pfnn_preprocessing\mk_cmu_database_sexy.npz'
+    # meta_data_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn\network_parameters\no_local_rot'
+    meta_data_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn\network_parameters\cmu_ground'
     save_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn'
 
     input_data, output_data = get_training_data(training_data_path, meta_data_path, save_path)
-
-    # n_controls = 4
-    # batchsize = 256
-    # dropout = 0.7
-    # model = PFNN(n_controls, input_data.shape[1], output_data.shape[1], dropout, batchsize)
-    # model.create_model()
-    # print("training start")
-    # model.train(input_data, output_data, n_epoches=10)
+    n_controls = 4
+    batchsize = 256
+    dropout = 0.7
+    model = PFNN(n_controls, input_data.shape[1], output_data.shape[1], dropout, batchsize)
+    model.create_model()
+    print("training start")
+    model.train(input_data, output_data, n_epoches=10)
     # model.save_model(r'trained_models/pfnn_no_rot_256.ckpt')
-    # # model.save_params()
+    model.save_model(r'trained_models/sexy_small_data.ckpt')
+    save_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn\network_parameters\mk_cmu_small_dataset\sexy'
+    model.save_params(save_path, num_points=50)
 
 
 def finetune_pfnn():
     # training_data_path = r'D:\gits\PFNN\mk_cmu_database_ground.npz'
     # target_style = "proud"
-    # target_style = "childlike"
-    target_style = "old"
-    # target_style = 'sexy' ## to be continued
-    n_epoches = 10
+    target_style = "childlike"
+    # target_style = "old"
+    # target_style = 'angry' ## to be continued
+    n_epoches = 1
     # training_data_path = r'D:\workspace\projects\variational_style_simulation\training_data\pfnn_preprocessing\mk_cmu_database' + '_' + target_style + '.npz'
     training_data_path = r'D:\gits\PFNN\mk_cmu_' + target_style + '.npz'
     meta_data_path = r'D:\workspace\my_git_repos\deepMotionSynthesis\data\pfnn\network_parameters\cmu_ground'
