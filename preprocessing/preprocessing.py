@@ -1,4 +1,5 @@
 # encoding: UTF-8
+from mosi_dev_deepmotionmodeling.mosi_utils_anim.animation_data import body_plane
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/..')
@@ -8,6 +9,8 @@ from mosi_utils_anim.animation_data.utils import convert_euler_frames_to_cartesi
     pose_orientation_euler
 from preprocessing.utils import rotate_cartesian_frames_to_ref_dir, cartesian_pose_orientation, rotation_cartesian_frames
 from mosi_utils_anim.animation_data.quaternion import Quaternion
+from utilities.quaternions import Quaternions
+from utilities.Pivots import Pivots
 import numpy as np
 import collections
 import os
@@ -285,72 +288,147 @@ def process_bvhfile(filename,
         return cartesian_frames
 
 
-def process_file(filename, window=240, window_step=120, sliding_window=True, animated_joints=MH_CMU_ANIMATED_JOINTS,
-                 body_plane_indices=[7, 25, 1], fid_l=[3, 4], fid_r=[27, 28]):
-    """ Compute joint positions for animated joints """
+def process_file_pfnn(filename,
+                      animated_joints):
+    bvhreader = BVHReader(filename)
+    skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
+    cartesian_frames = convert_euler_frames_to_cartesian_frames(skeleton, bvhreader.frames)
+    sdr_l = animated_joints.index('LeftArm')
+    sdr_r = animated_joints.index('RightArm')
+    hip_l = animated_joints.index('LeftUpLeg')
+    hip_r = animated_joints.index('RightUpLeg')
+    across = (
+        (cartesian_frames[:,sdr_l] - cartesian_frames[:,sdr_r]) + 
+        (cartesian_frames[:,hip_l] - cartesian_frames[:,hip_r]))
+    across = across / np.sqrt((across**2).sum(axis=-1))[...,np.newaxis]    
+    """ Smooth Forward Direction """
+    
+    # direction_filterwidth = 20
+    # forward = filters.gaussian_filter1d(
+    #     np.cross(across, np.array([[0,1,0]])), direction_filterwidth, axis=0, mode='nearest')    
+    # forward = np.cross(across, np.array([[0,1,0]]))
+    # forward = forward / np.sqrt((forward**2).sum(axis=-1))[...,np.newaxis]
+    torso_joints = ['Spine1', 'RightUpLeg', 'LeftUpLeg']
+    left_foot_joints = ['LeftFoot', 'LeftToeBase']
+    right_foot_joints = ['RightFoot', 'RightToeBase']
+    up_axis = np.array([0, 1, 0])
+    ref_dir = np.array([0, 0, 1])
+    body_plane_indices = [animated_joints.index(joint) for joint in torso_joints]
+    forward = []
+    for i in range(len(cartesian_frames)):
+        forward.append(cartesian_pose_orientation(cartesian_frames[i], body_plane_indices, up_axis))
+    forward = np.asarray(forward)
+    root_rotation = get_rotation_to_ref_direction(forward, ref_dir=ref_dir)
+    # root_rotation = Quaternions.between(forward, 
+    #     np.array([[0,0,1]]).repeat(len(forward), axis=0))[:,np.newaxis] 
+    n_frames = len(cartesian_frames)
+    local_positions = cartesian_frames.copy()
+    local_positions[:,:,0] = local_positions[:,:,0] - local_positions[:,0:1,0]
+    local_positions[:,:,2] = local_positions[:,:,2] - local_positions[:,0:1,2]
+    """ Get Root Velocity """
+    root_velocity = (cartesian_frames[1:, 0:1] - cartesian_frames[:-1, 0:1]).copy()  
+    # local_positions = root_rotation[:-1] * local_positions[:-1]
+    for i in range(n_frames):
+        local_positions[i] = rotate_cartesian_frame(local_positions[i], root_rotation[i])   
+    """ Rotate Velocity """
+    for i in range(n_frames - 1):
+        # print(rotations[i+1])
 
+        root_velocity[i, 0] = root_rotation[i+1] * root_velocity[i, 0]
+    """ Get Rotation Velocity """
+    root_rvelocity = np.zeros(n_frames - 1)
+    for i in range(n_frames - 1):
+        q = root_rotation[i+1] * (-root_rotation[i])
+        root_rvelocity[i] = Quaternion.get_angle_from_quaternion(q, ref_dir)
+    
+    # root_velocity = root_rotation[:-1] * (cartesian_frames[1:,0:1] - cartesian_frames[:-1,0:1])
+    # root_rvelocity = Pivots.from_quaternions(root_rotation[1:] * -root_rotation[:-1]).ps
+    cartesian_frames = local_positions.reshape(len(local_positions), -1)
+
+    cartesian_frames = np.concatenate([cartesian_frames[:-1], root_velocity[:, 0, 0:1]], axis=-1)
+    cartesian_frames = np.concatenate([cartesian_frames, root_velocity[:, 0, 2:3]], axis=-1)
+    cartesian_frames = np.concatenate([cartesian_frames, root_rvelocity[:, np.newaxis]], axis=-1)
+
+    return cartesian_frames
+
+
+def process_file(filename, 
+                 torso_joints, 
+                 left_foot_joints,
+                 right_foot_joints,
+                 animated_joints=MH_CMU_ANIMATED_JOINTS,
+                 window=240, 
+                 window_step=120, 
+                 sliding_window=True,
+                 forward_axis=[0, 0, 1],
+                 up_axis=[0, 1, 0]):
+    """ Compute joint positions for animated joints """
     print(filename)
     bvhreader = BVHReader(filename)
-    ref_dir = np.array([0, 0, 1])
-    up_axis = np.array([0, 1, 0])
-
+    body_plane_indices = [animated_joints.index(joint) for joint in torso_joints]
+    fid_l = [animated_joints.index(joint) for joint in left_foot_joints]
+    fid_r = [animated_joints.index(joint) for joint in right_foot_joints]
     skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
-
     cartesian_frames = convert_euler_frames_to_cartesian_frames(skeleton, bvhreader.frames,
                                                                 animated_joints=animated_joints)                                                    
-    cartesian_frames = np.concatenate((cartesian_frames[0:1], cartesian_frames), axis=0)  ## append the first frame for calculating velocity
     n_frames = len(cartesian_frames)
     forward = []
     for i in range(len(cartesian_frames)):
         forward.append(cartesian_pose_orientation(cartesian_frames[i], body_plane_indices, up_axis))
     forward = np.asarray(forward)
-    rotations = get_rotation_to_ref_direction(forward, ref_dir=ref_dir)
+    rotations = get_rotation_to_ref_direction(forward, ref_dir=forward_axis)
 
     """ Put on Floor """
 
     foot_heights = np.minimum(cartesian_frames[:, fid_l, 1], cartesian_frames[:, fid_r, 1]).min(axis=1)
     floor_height = softmin(foot_heights, softness=0.5, axis=0)
-
+    ### first, put on the ground
     cartesian_frames = cartesian_frames - floor_height
 
     """ Get Root Velocity """
-    velocity = (cartesian_frames[1:, 0:1] - cartesian_frames[:-1, 0:1]).copy()
+    root_velocity = (cartesian_frames[1:, 0:1] - cartesian_frames[:-1, 0:1]).copy()
     """ Remove Translation """
+    ### second remove translation in x and z axis
     cartesian_frames[:, :, 0] = cartesian_frames[:, :, 0] - cartesian_frames[:, 0:1, 0]
     cartesian_frames[:, :, 2] = cartesian_frames[:, :, 2] - cartesian_frames[:, 0:1, 2]
+
+    local_velocities = cartesian_frames[1:] - cartesian_frames[:-1]
     """ Remove Y Rotation """
-    for i in range(n_frames):
+    ### thirdly, rotated frames
+    for i in range(n_frames - 1):
         cartesian_frames[i] = rotate_cartesian_frame(cartesian_frames[i], rotations[i])
+        local_velocities[i] = rotate_cartesian_frame(local_velocities[i], rotations[i])
 
     """ Rotate Velocity """
     for i in range(n_frames - 1):
-        # print(rotations[i+1])
 
-        velocity[i, 0] = rotations[i+1] * velocity[i, 0]
+        root_velocity[i, 0] = rotations[i+1] * root_velocity[i, 0]
     """ Get Rotation Velocity """
     r_v = np.zeros(n_frames - 1)
     for i in range(n_frames - 1):
         q = rotations[i+1] * (-rotations[i])
-        r_v[i] = Quaternion.get_angle_from_quaternion(q, ref_dir)
+        r_v[i] = Quaternion.get_angle_from_quaternion(q, np.asarray(forward_axis))
 
-    """ Add Velocity, RVelocity, Foot Contacts to vector """
-    cartesian_frames = cartesian_frames[1:]
-    cartesian_frames = cartesian_frames.reshape(len(cartesian_frames), -1)
-    cartesian_frames = np.concatenate([cartesian_frames, velocity[:, :, 0]], axis=-1)
-    cartesian_frames = np.concatenate([cartesian_frames, velocity[:, :, 2]], axis=-1)
-    cartesian_frames = np.concatenate([cartesian_frames, r_v[:, np.newaxis]], axis=-1)
+    """ Add Root_Velocity, RVelocity, Foot Contacts to vector """
+    output_features = cartesian_frames.reshape(len(cartesian_frames), -1)
+    output_features = np.concatenate([output_features[:-1], root_velocity[:, :, 0]], axis=-1)
+    output_features = np.concatenate([output_features, root_velocity[:, :, 2]], axis=-1)
+    output_features = np.concatenate([output_features, r_v[:, np.newaxis]], axis=-1)
+
+    """ Add Local Velocity, Local Orientation to output vector"""
+    
 
     if sliding_window:
         """ Slide Over Windows """
         windows = []
         # windows_classes = []
-        if len(cartesian_frames) % window_step == 0:
-            n_clips = (len(cartesian_frames) - len(cartesian_frames) % window_step)//window_step 
+        if len(output_features) % window_step == 0:
+            n_clips = (len(output_features) - len(output_features) % window_step)//window_step 
         else:
-            n_clips = (len(cartesian_frames) - len(cartesian_frames) % window_step) // window_step + 1
+            n_clips = (len(output_features) - len(output_features) % window_step) // window_step + 1
         for j in range(0, n_clips):
             """ If slice too small pad out by repeating start and end poses """
-            slice = cartesian_frames[j * window_step : j * window_step + window]
+            slice = output_features[j * window_step : j * window_step + window]
             if len(slice) < window:
                 left = slice[:1].repeat((window - len(slice)) // 2 + (window - len(slice)) % 2, axis=0)
                 left[:, -7:-4] = 0.0
@@ -363,7 +441,7 @@ def process_file(filename, window=240, window_step=120, sliding_window=True, ani
         return windows
 
     else:
-        return cartesian_frames
+        return output_features
 
 
 def get_bvh_files(path):

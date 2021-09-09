@@ -1,3 +1,5 @@
+from mosi_dev_deepmotionmodeling.mosi_utils_anim.animation_data.skeleton_models import MH_CMU_SKELETON_MODEL
+from threading import local
 import tensorflow as tf 
 import copy
 import sys
@@ -188,29 +190,90 @@ def export_point_cloud_data_without_foot_contact(motion_data, filename=None, ske
         write_to_json_file(filename, save_data)
 
 
-def reconstruct_global_position(motion_data):
-    """
-    
-    Arguments:
-        motion_data {numpy.array} -- n_frames * n_dims
-    """
-    relative_positions, root_x, root_z, root_r = motion_data[:, :-3], motion_data[:, -3], motion_data[:, -2], motion_data[:, -1]
-    n_frames = len(relative_positions)
-    relative_positions = relative_positions.reshape(n_frames, -1, 3)
+def export_point_cloud_data_using_velocity(motion_data, filename, skeleton=MH_CMU_SKELETON, scale_factor=1):
+    '''
+    :param motion_data: n_frames * n_dims 
+    :param filename: 
+    :return: 
+    '''
+    n_joints = 31
+    n_frames = len(motion_data)
+    root_x, root_z, root_r = motion_data[:, 0], motion_data[:, 1], motion_data[:, 2]
+    joints = motion_data[:, 3 : 3 + n_joints * 3]
+    vel = motion_data[:, 3 + n_joints * 3 : 3 + n_joints * 3 * 2]
+
+    joints = joints.reshape((len(joints), -1, 3))  ### reshape 2D matrix to (n_frames, n_joints, n_dims)
+    vel = vel.reshape((len(vel), -1, 3))
     rotation = Quaternions.id(1)
+    translation = np.array([[0, 0, 0]])
+    last_joints = np.array([0,0,0] * len(joints))
+    # ref_dir = np.array([0, 0, 1])
+    print("testing")
+    for i in range(len(joints)):
+        joints[i, :, :] = rotation * joints[i]
+        joints[i, :, 0] = joints[i, :, 0] + translation[0, 0]
+        joints[i, :, 2] = joints[i, :, 2] + translation[0, 2]
+        if i == 0:
+            last_joints = joints[i]
+        else:
+            vel[i, :, :] = rotation * vel[i]
+            joints[i, :, :] = ((last_joints + vel[i, :, :]) + joints[i, :, :]) / 2
+            last_joints = joints[i]
+    joints *= scale_factor
+
+    save_data = {'motion_data': joints.tolist(), 'has_skeleton': True, 'skeleton': skeleton}
+    write_to_json_file(filename, save_data)
+
+
+def reconstruct_global_position(motion_data, filename, scale_factor=1, 
+                                skeleton=MH_CMU_SKELETON, 
+                                starting_position=None,
+                                starting_orientation=None):
+    """
+    Arguments:
+        motion_data {numpy.array} -- n_frames * n_dims (root_v_x, root_v_z, root_v_r, local_position (n_joints * 3),
+        local_velocities (n_joints * 3), local_forward_aixs (n_joints * 3), local_up_axis (n_joionts * 3))
+    """
+    n_joints = 31
+    n_frames = len(motion_data)
+    root_x, root_z, root_r = motion_data[:, 0], motion_data[:, 1], motion_data[:, 2]
+    local_positions = motion_data[:, 3 : 3 + n_joints * 3]
+    local_velocities = motion_data[:, 3 + n_joints * 3 : 3 + n_joints * 3 * 2]
+    local_forward = motion_data[:, 3 + n_joints * 3 * 2 : 3 + n_joints * 3 * 3]
+    local_up = motion_data[:, 3 + n_joints * 3 * 3 : 3 + n_joints * 3 * 4]
+
+    ##reshape data
+    local_positions = local_positions.reshape(n_frames, n_joints, 3)
+    local_velocities = local_velocities.reshape(n_frames, n_joints, 3)
+    local_forward = local_forward.reshape(n_frames, n_joints, 3)
+    local_up = local_up.reshape(n_frames, n_joints, 3)
+    if starting_position is None:
+        starting_position = [0, 0, 0]
+    if starting_orientation is None:
+        starting_orientation = Quaternions.id(1)
+    rotation = starting_orientation
+
+    translation = np.asarray(starting_position)
     new_frames = []
-    translation = np.zeros(3)
     for i in range(n_frames):
-        rotation = Quaternions.from_angle_axis(-root_r[i], np.array([0, 1, 0])) * rotation
-        relative_positions[i] = rotation * relative_positions[i]
-        translation = translation + rotation * np.array([root_x[i], 0, root_z[i]])
-        new_frames.append(relative_positions[i] + translation)
-        # relative_positions[i] = rotation * relative_positions[i]
-        # relative_positions[i] = relative_positions[i] + translation
-        # rotation = Quaternions.from_angle_axis(-root_r[i], np.array([0, 1, 0])) * rotation
-        # translation = translation + rotation * np.array([root_x[i], 0, root_z[i]])
-        # new_frames.append(relative_positions[i])
-    return np.asarray(new_frames)
+        # rotation = Quaternions.from_angle_axis(-root_vr[i], np.array([0, 1, 0])) * rotation  ## accumuated sum of rotation
+        local_positions[i] = rotation * local_positions[i]
+        local_velocities[i] = rotation * local_velocities[i]
+        local_forward[i] = rotation * local_forward[i]
+        local_up[i] = rotation * local_up[i]
+        if i > 1:
+            local_positions[i] = (local_positions[i-1] + local_velocities[i-1]) * 0.5 + (local_positions[i] + translation) * 0.5
+        else:
+            local_positions[i] = local_positions[i] + translation
+        rotation = Quaternions.from_angle_axis(-root_r[i], np.array([0, 1, 0])) * rotation  ### update rotation
+        translation = translation + rotation * np.array([root_x[i], 0, root_z[i]])  ### update translation
+        # new_frames.append(relative_positions[i] + translation)
+        new_frames.append(local_positions[i])
+
+    new_frames = np.asarray(new_frames) * scale_factor
+
+    save_data = {'motion_data': new_frames.tolist(), 'has_skeleton': True, 'skeleton': skeleton}
+    write_to_json_file(filename, save_data)
 
 
 

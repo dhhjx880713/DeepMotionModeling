@@ -35,8 +35,6 @@ def convert_bvh_to_unity_json(bvhfile, save_dir=None, scale=1.0):
     mv.from_bvh_reader(bvhreader)
     motion_json = mv.to_unity_format(scale=scale)
     output_json = collections.OrderedDict()
-    # output_json = {"skeletonDesc": skeleton_json,
-    #                "motion": motion_json}
     output_json['skeletonDesc'] = skeleton_json
     output_json['motion'] = motion_json
     if save_dir is None:

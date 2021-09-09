@@ -2,14 +2,14 @@ import os
 import sys
 from pathlib import Path
 abspath = os.path.abspath(__file__)
-dname = os.path.dirname(abspath)
-os.chdir(dname)
+dirname = os.path.dirname(abspath)
+os.chdir(dirname)
 sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/..')
 from models.fullBody_pose_encoder import FullBodyPoseEncoder
 import numpy as np 
 from tensorflow.keras import Sequential, layers, Model, optimizers, losses
 import tensorflow as tf 
-from utilities.utils import export_point_cloud_data_without_foot_contact
+from utilities.utils import export_point_cloud_data_without_foot_contact, average_euclidean_distance
 from utilities.skeleton_def import MH_CMU_SKELETON
 import time
 import copy
@@ -131,6 +131,98 @@ def run_fullBody_pose_encoder():
     plt.show()
 
 
+
+def run_fullyBodyEncoder_dancing_clips():
+    ### load training data to calculate meta information
+    training_data_path = os.path.join(dirname, '../..', r'data/training_data/dancing/dancing_data.npy')
+    training_data = np.load(training_data_path)
+    n_samples, n_frames, n_dims = training_data.shape
+    training_data = np.reshape(training_data, (training_data.shape[0], training_data.shape[1] * training_data.shape[2]))
+    output_dim = training_data.shape[1]
+    dropout_rate = 0.1
+    npc = 128
+    mean_value = training_data.mean(axis=0)[np.newaxis, :]
+    std_value = training_data.std(axis=0)[np.newaxis, :]
+    std_value[std_value<EPS] = EPS    
+    normalized_data = (training_data - mean_value) / std_value  
+
+    ### load model
+    model_name = r'D:\workspace\my_git_repos\vae_motion_modeling\data\models\dancing_ClipEnc\dancing_ClipEnc_128_0500.ckpt'
+    model = FullBodyPoseEncoder(output_dim=output_dim, dropout_rate=dropout_rate, npc=npc)
+    model.load_weights(model_name)
+
+    encoded_motion = model.encode(normalized_data).numpy()
+    print(encoded_motion.shape)
+    
+    ### save encoded data
+
+    # np.save(os.path.join(os.path.dirname(training_data_path), 'encoded_data.npy'), encoded_motion)
+
+    ### load test data
+    # res = model(normalized_data[:100])
+    # reconstructed_motion = res * std_value + mean_value
+    # reconstructed_motion = np.reshape(reconstructed_motion, (100, 120, 90))
+    # save_path = r'E:\tmp'
+    # for i in range(len(reconstructed_motion)):
+    #     save_filename = os.path.join(save_path, 'dancing_' + str(i) + '.panim')
+    #     export_point_cloud_data_without_foot_contact(reconstructed_motion[i], save_filename, scale_factor=5)
+
+    # ### quantitative evaluation
+    # res = model(normalized_data)
+    # reconstructed_motion = res * std_value + mean_value
+    # print(reconstructed_motion.shape)
+    # reconstructed_motion = np.reshape(reconstructed_motion, (n_samples, n_frames, n_dims))
+    # training_data = np.reshape(training_data, (n_samples, n_frames, n_dims))
+    # motion_3d = []
+    # training_data_3d = []
+    # for i in range(len(reconstructed_motion)):
+    #     motion_3d.append(export_point_cloud_data_without_foot_contact(reconstructed_motion[i]))
+    #     training_data_3d.append(export_point_cloud_data_without_foot_contact(training_data[i]))
+    # motion_3d = np.asarray(motion_3d)
+    # training_data_3d = np.asarray(training_data_3d)
+    # err = average_euclidean_distance(motion_3d, training_data_3d)
+    # print("average euclidean error per joint is {}".format(err))
+
+
+
+def decode_data():
+    ## load data 
+    data_file = r'D:\workspace\my_git_repos\vae_motion_modeling\data\training_data\dancing\sampled_motions.npy'
+    encoded_data = np.load(data_file)
+    print(encoded_data.shape)
+
+    ## load model
+    ### load training data to calculate meta information
+    training_data_path = r'D:\workspace\my_git_repos\vae_motion_modeling\data\training_data\dancing\dancing_data.npy'
+    training_data = np.load(training_data_path)
+    training_data = np.reshape(training_data, (training_data.shape[0], training_data.shape[1] * training_data.shape[2]))
+    output_dim = training_data.shape[1]
+    dropout_rate = 0.1
+
+    mean_value = training_data.mean(axis=0)[np.newaxis, :]
+    std_value = training_data.std(axis=0)[np.newaxis, :]
+    std_value[std_value<EPS] = EPS    
+
+
+    ### load model
+    model_name = r'D:\workspace\my_git_repos\vae_motion_modeling\data\models\dancing_ClipEnc\dancing_ClipEnc_0150.ckpt'
+    model = FullBodyPoseEncoder(output_dim=output_dim, dropout_rate=dropout_rate, npc=256)
+    model.load_weights(model_name)    
+
+    res = model.decode(encoded_data)
+    reconstructed_motion = res * std_value + mean_value
+    reconstructed_motion = np.reshape(reconstructed_motion, (100, 120, 90))
+
+    save_path = r'D:\workspace\my_git_repos\vae_motion_modeling\data\tmp\dancing'
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    for i in range(len(reconstructed_motion)):
+        save_filename = os.path.join(save_path, 'dancing_' + str(i) + '.panim')
+        export_point_cloud_data_without_foot_contact(reconstructed_motion[i], save_filename, scale_factor=5)
+
+
 if __name__ == "__main__":
-    train_fullBody_pose_encoder()
+    # train_fullBody_pose_encoder()
     # run_fullBody_pose_encoder()
+    run_fullyBodyEncoder_dancing_clips()
+    # decode_data()

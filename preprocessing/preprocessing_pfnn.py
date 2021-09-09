@@ -7,10 +7,8 @@ import os
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/..')
 from mosi_utils_anim.animation_data import BVHReader, BVHWriter, SkeletonBuilder
-from mosi_utils_anim.animation_data.utils import convert_euler_frames_to_cartesian_frames, \
-    convert_quat_frames_to_cartesian_frames, rotate_cartesian_frames_to_ref_dir, get_rotation_angles_for_vectors, \
-    rotation_cartesian_frames, cartesian_pose_orientation, pose_orientation_euler, rotate_around_y_axis
-from preprocessing.utils import covnert_pfnn_preprocessed_data_to_global_joint_positions
+from mosi_utils_anim.animation_data.utils import convert_euler_frames_to_cartesian_frames
+# from preprocessing.utils import covnert_pfnn_preprocessed_data_to_global_joint_positions
 from mosi_utils_anim.animation_data.quaternion import Quaternion
 from pfnn.Learning import RBF
 

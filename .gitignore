@@ -13,7 +13,7 @@
 *.sln.docstates
 *.vcxproj.filters
 data/
-
+experiments/
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

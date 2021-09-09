@@ -52,10 +52,6 @@ class FrameEncoderNoGlobal(tf.keras.Model):
                           'lower_body': ['torso_leftLeg', 'torso_rightLeg']}
         self.L4_groups = {'full_body': ['upper_body', 'lower_body']}                                                
 
-        # self.L1_units = 32
-        # self.L2_units = 64
-        # self.L3_units = 128
-        # self.L4_units = 256
         self.L1_units = 64
         self.L2_units = 128
         self.L3_units = 256
